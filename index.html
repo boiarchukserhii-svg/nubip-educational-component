@@ -58,6 +58,12 @@ footer{margin:14px 0}
 }
 @media(max-width:430px){dialog{padding:13px}}
 </style></head><body>
+<section aria-label="Збереження даних" class="toolbar">
+ <button id="cloudLogin" type="button" disabled>Увійти через Google</button>
+ <button id="cloudLogout" type="button" hidden>Вийти</button>
+ <button id="cloudImport" type="button" hidden>Перенести дані з цього браузера</button>
+ <span id="cloudStatus" role="status">Підключення синхронізації…</span>
+</section>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
 <main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted" id="rosterLabel"></p><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div class="toolbar"><button id="importLocal" type="button">Перенести 1 курс із «Аспірантів»</button><button id="importBackup" type="button">Відкрити JSON-копію «Аспірантів»</button><input id="registryFile" type="file" accept=".json,application/json" hidden></div><p id="importStatus" role="status"></p><div id="students" class="stack toolbar"></div></aside>
 <section aria-labelledby="name"><h2 id="name"></h2><p id="emptyProfile" hidden></p><div id="studentProfile"><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="yearContent" hidden><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
@@ -160,11 +166,70 @@ function downloadEducationWorkbook(period,rows,filters){
 }
 </script><script>"use strict";
 const $=id=>document.getElementById(id);
+let cloudUser=null, cloudState=null, cloud=null, cloudStop=null, writing=false;
+const dialogRevisions=new Map();
+function openDataDialog(id){
+ dialogRevisions.set(id,cloudState?.revision);
+ $(id).showModal();
+}
+function readRecord(key){
+ return cloudUser ? cloudState?.records[key]??null : JSON.parse(localStorage.getItem(key));
+}
+function applyCloudState(next){
+ if(cloudState&&next.revision<cloudState.revision)return;
+ cloudState=next;
+ refreshData();
+ cloudStatus("Дані синхронізовано.");
+}
+function refreshData(){
+ try {students=readRecord(rosterKey)??[];} catch {students=[];}
+ try {schedules=readRecord(scheduleKey)??{};} catch {schedules={};}
+ selectStudent(students.find(student=>student.id===selected?.id)??null);
+ refreshRosterFilters();
+ render();
+}
+function cloudStatus(message){
+ $("cloudStatus").textContent=message;
+ $("cloudImport").hidden=!(cloudUser&&cloudState?.revision===0&&!writing);
+}
+function syncError(error){
+ if(error.code==="permission-denied")return "Немає доступу до сховища Firestore.";
+ if(error.code==="auth/unauthorized-domain")return "Цю адресу сайту ще не дозволено у Firebase Authentication.";
+ return error.message||"Не вдалося синхронізувати дані.";
+}
+async function writeCloud(records, revision){
+ if(writing)throw Error("Дочекайтеся завершення попереднього збереження.");
+ const user=cloudUser;
+ writing=true;
+ cloudStatus("Збереження…");
+ try {
+  const next=await cloud.save(user,revision,records);
+  if(cloudUser!==user)throw Error("Сеанс входу змінився.");
+  applyCloudState(next);
+ } catch(error){
+  if(cloudUser===user)cloudStatus(syncError(error));
+  throw error;
+ } finally {
+  writing=false;
+  $("cloudImport").hidden=!(cloudUser&&cloudState?.revision===0);
+ }
+}
+async function writeRecord(key,value,dialogId){
+ if(!cloudUser){
+  localStorage.setItem(key,JSON.stringify(value));
+  return;
+ }
+ if(!cloudState)throw Error("Дочекайтеся завантаження даних із хмари.");
+ if(dialogId&&dialogRevisions.get(dialogId)!==cloudState.revision){
+  throw Error("Дані вже змінилися в іншому сеансі. Відкрийте форму знову.");
+ }
+ await writeCloud({...cloudState.records,[key]:value},cloudState.revision);
+}
 const cohort=2026;
 const ownKey="nubip-education-own-plan-v1";
 function loadOwnPlan(storageKey=ownKey){
  try {
-  const record=JSON.parse(localStorage.getItem(storageKey));
+  const record=readRecord(storageKey);
   if(Array.isArray(record?.courses)&&record?.planned&&record?.results)return record;
  } catch {}
  return {courses:[],planned:{},results:{}};
@@ -173,7 +238,7 @@ const registryKey="aspirantura-nubip.registry.v1";
 const rosterKey="nubip-education-first-year-v1";
 let roster=[];
 try {
- const saved=JSON.parse(localStorage.getItem(rosterKey));
+ const saved=readRecord(rosterKey);
  if(Array.isArray(saved))roster=saved;
 } catch {}
 let students=roster, selected=null, year=null, term=1, course, editing;
@@ -183,7 +248,7 @@ const studyCohort=()=>selected.cohort;
 const activePlanKey=()=>ownKey+":"+groupKey(selected);
 const planName=()=>selected.program+" · "+selected.mode;
 let data;
-function importFirstYear(cards){
+async function importFirstYear(cards){
  if(!Array.isArray(cards))throw Error("Копія реєстру має містити список карток.");
  const next=new Map();
  for(const card of cards){
@@ -197,7 +262,7 @@ function importFirstYear(cards){
  }
  if(!next.size)throw Error("У копії немає карток першого курсу.");
  const imported=[...next.values()].sort((a,b)=>a.name.localeCompare(b.name,"uk"));
- localStorage.setItem(rosterKey,JSON.stringify(imported));
+ await writeRecord(rosterKey,imported);
  students=imported;selectStudent(null);refreshRosterFilters();year=null;term=1;render();
  $("importStatus").textContent="Перенесено карток: "+students.length+".";
 }
@@ -208,11 +273,11 @@ function selectStudent(student){
  data=loadOwnPlan(activePlanKey());
  $("studyMode").value=/заоч/i.test(student.mode)?"partTime":"fullTime";
 }
-$("importLocal").onclick=()=>{
+$("importLocal").onclick=async ()=>{
  try {
   const source=JSON.parse(localStorage.getItem(registryKey));
   if(!Array.isArray(source)||!source.length)throw Error("Локального реєстру не знайдено. Збережіть JSON-копію в «Аспірантах» і відкрийте її тут.");
-  importFirstYear(source);
+  await importFirstYear(source);
  } catch(error){$("importStatus").textContent=error.message;}
 };
 $("importBackup").onclick=()=>$("registryFile").click();
@@ -222,7 +287,7 @@ $("registryFile").onchange=async event=>{
  try {
   const backup=JSON.parse(await file.text());
   if(backup?.format!==registryKey)throw Error("Оберіть JSON-копію з додатка «Аспіранти».");
-  importFirstYear(backup.cards);
+  await importFirstYear(backup.cards);
  } catch(error){$("importStatus").textContent=error.message;}
  finally {input.value="";}
 };
@@ -239,11 +304,12 @@ function button(label,click,pressed){
  if(pressed!==undefined)node.setAttribute("aria-pressed",String(pressed));
  return node;
 }
-function save(next,errorId,message){
- try {localStorage.setItem(activePlanKey(),JSON.stringify(next));} catch {
-  $(errorId).textContent="Браузер не дозволив зберегти зміни.";return false;
+async function save(next,errorId,message){
+ try {await writeRecord(activePlanKey(),next,$(errorId).closest("dialog").id);} catch(error) {
+  $(errorId).textContent=syncError(error);return false;
  }
- data=next;render();$("notice").textContent=message;return true;
+ if(!cloudUser)data=next;
+ render();$("notice").textContent=message;return true;
 }
 function addAttempt(next,student,subject,date,score){
  const id=student.id+":"+subject.id;
@@ -297,7 +363,7 @@ const academicSchedule = {
 };
 const scheduleKey="nubip-education-schedule-v1";
 let schedules={};
-try {schedules=JSON.parse(localStorage.getItem(scheduleKey))??{};} catch {}
+try {schedules=readRecord(scheduleKey)??{};} catch {}
 const scheduleFor=(y,t)=>academicSchedule[studyCohort()+y-1]?.[t]??schedules[studyCohort()+y-1]?.[t];
 const scheduleLabels={fullTime:"Денна форма · заняття",partTime:"Заочна форма · заняття",session:"Екзаменаційна сесія",reporting:"Звітування",practice:"Асистентська практика",research:"Наукова робота"};
 let editingSchedule;
@@ -317,9 +383,9 @@ $("editSchedule").onclick=()=>{
   }
   field.append(row);return field;
  }));
- $("scheduleDialog").showModal();
+ openDataDialog("scheduleDialog");
 };
-$("scheduleForm").onsubmit=event=>{
+$("scheduleForm").onsubmit=async event=>{
  event.preventDefault();
  const {start,half}=editingSchedule;
  const dates=new FormData(event.currentTarget), schedule={};
@@ -334,10 +400,11 @@ $("scheduleForm").onsubmit=event=>{
  }
  if(!Object.keys(schedule).length){$("scheduleError").textContent="Вкажіть хоча б один період.";return;}
  const next={...schedules,[start]:{...schedules[start],[half]:schedule}};
- try {localStorage.setItem(scheduleKey,JSON.stringify(next));} catch {
-  $("scheduleError").textContent="Не вдалося зберегти графік у браузері.";return;
+ try {await writeRecord(scheduleKey,next,"scheduleDialog");} catch(error) {
+  $("scheduleError").textContent=syncError(error);return;
  }
- schedules=next;$("scheduleDialog").close();renderSchedule();
+ if(!cloudUser)schedules=next;
+ $("scheduleDialog").close();render();
 };
 const dateRange=range=>range.map(dateLabel).join(" – ");
 function renderSchedule(){
@@ -406,13 +473,13 @@ function openResult(subject){
  $("history").open=false;
  const attempts=history(selected,subject);
  $("attempts").replaceChildren(...attempts.map(attempt=>el("li",dateLabel(attempt.date)+" · "+attempt.score+" балів")));
- $("history").hidden=!attempts.length;$("result").showModal();
+ $("history").hidden=!attempts.length;openDataDialog("result");
 }
-$("resultForm").onsubmit=event=>{
+$("resultForm").onsubmit=async event=>{
  event.preventDefault();
  const next=structuredClone(data);
  addAttempt(next,selected,course,$("resultDate").value,$("resultScore").valueAsNumber);
- if(save(next,"resultError","Результат збережено."))$("result").close();
+ if(await save(next,"resultError","Результат збережено."))$("result").close();
 };
 function openGroup(subject){
  course=subject;$("groupForm").reset();$("groupError").textContent="";
@@ -426,9 +493,9 @@ function openGroup(subject){
   cell.append(score);row.append(el("td",student.name),el("td",latest(student,subject)?.score??"—"),cell);
   return row;
  }));
- $("group").showModal();
+ openDataDialog("group");
 }
-$("groupForm").onsubmit=event=>{
+$("groupForm").onsubmit=async event=>{
  event.preventDefault();$("groupError").textContent="";
  const fields=event.currentTarget.elements, date=$("groupDate").value;
  const marked=groupStudents().filter(student=>fields.namedItem("score-"+student.id).value!=="");
@@ -436,7 +503,7 @@ $("groupForm").onsubmit=event=>{
  const next=structuredClone(data);
  next.planned[course.id]=$("planned").value;
  for(const student of marked)addAttempt(next,student,course,date,fields.namedItem("score-"+student.id).valueAsNumber);
- if(save(next,"groupError","Відомість збережено."))$("group").close();
+ if(await save(next,"groupError","Відомість збережено."))$("group").close();
 };
 $("export").onclick=()=>{
  const rows=[["ПІБ","Заплановано","Складено","Бал"]];
@@ -461,9 +528,9 @@ function openPlan(subject){
  $("courseControl").value=subject?.control??"Екзамен";
  $("courseKind").value=subject?.kind??"Обов’язкова";
  $("removeCourse").hidden=!subject||hasResults(subject);
- $("plan").showModal();
+ openDataDialog("plan");
 }
-$("planForm").onsubmit=event=>{
+$("planForm").onsubmit=async event=>{
  event.preventDefault();
  const name=$("courseName").value.trim();
  if(!name){$("planError").textContent="Вкажіть назву дисципліни.";$("courseName").focus();return;}
@@ -475,13 +542,13 @@ $("planForm").onsubmit=event=>{
  }
  if(editing)next.courses=next.courses.map(item=>item.id===subject.id?subject:item);
  else next.courses.push(subject);
- if(save(next,"planError","Дисципліну збережено.")){year=subject.year;term=subject.term;render();$("plan").close();}
+ if(await save(next,"planError","Дисципліну збережено.")){year=subject.year;term=subject.term;render();$("plan").close();}
 };
-$("removeCourse").onclick=()=>{
+$("removeCourse").onclick=async ()=>{
  if(!editing||hasResults(editing)||!confirm("Видалити дисципліну «"+editing.name+"» з плану?"))return;
  const next=structuredClone(data);next.courses=next.courses.filter(item=>item.id!==editing.id);
  delete next.planned[editing.id];
- if(save(next,"planError","Дисципліну видалено."))$("plan").close();
+ if(await save(next,"planError","Дисципліну видалено."))$("plan").close();
 };
 for(const button of document.querySelectorAll("[data-close]"))button.onclick=()=>$(button.dataset.close).close();
 $("search").oninput=render;
@@ -489,4 +556,49 @@ for(const id of ["specialtyFilter","programFilter","rosterSort"])$(id).onchange=
 refreshRosterFilters();
 selectStudent(selected);
 render();
+
+$("cloudLogin").onclick=async ()=>{
+ $("cloudLogin").disabled=true;
+ try {await cloud.enter();} catch(error) {cloudStatus(syncError(error));}
+ finally {$("cloudLogin").disabled=false;}
+};
+$("cloudLogout").onclick=async ()=>{
+ try {await cloud.exit();} catch(error) {cloudStatus(syncError(error));}
+};
+$("cloudImport").onclick=async ()=>{
+ if(!cloudUser||cloudState?.revision!==0)return;
+ try {
+  const records={};
+  for(const key of Object.keys(localStorage)){
+   if(key===rosterKey||key===scheduleKey||key===ownKey||key.startsWith(ownKey+":")){
+    records[key]=JSON.parse(localStorage.getItem(key));
+   }
+  }
+  if(!Object.keys(records).length){
+   cloudStatus("У цьому браузері немає даних для перенесення.");
+   return;
+  }
+  await writeCloud(records,0);
+ } catch(error){cloudStatus(syncError(error));}
+};
+import("./education-sync.js").then(module=>{
+ cloud=module;
+ cloud.observe(user=>{
+  cloudStop?.();
+  cloudStop=null;
+  cloudUser=cloud.isOwner(user)?user:null;
+  cloudState=null;
+  for(const id of ["scheduleDialog","result","group","plan"])$(id).close();
+  $("cloudLogin").disabled=false;
+  $("cloudLogin").hidden=Boolean(user);
+  $("cloudLogout").hidden=!user;
+  refreshData();
+  if(!cloudUser){
+   cloudStatus(user?"Синхронізація доступна власнику.":"Дані зберігаються в цьому браузері.");
+   return;
+  }
+  cloudStatus("Завантаження даних облікового запису…");
+  cloudStop=cloud.watch(cloudUser,applyCloudState,error=>cloudStatus(syncError(error)));
+ });
+}).catch(error=>cloudStatus("Синхронізація недоступна. Дані зберігаються в цьому браузері."));
 </script></body></html>
