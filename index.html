@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Освітня складова аспірантів</title>
+<style>
+:root{font:16px/1.5 system-ui,sans-serif;color:#163454;background:#f1f6fb}*{box-sizing:border-box}body{margin:0}header{background:#113a61;color:white;padding:28px max(18px,calc((100% - 1120px)/2))}header p{margin:0;color:#d7eafa}h1{font-size:clamp(25px,5vw,38px);line-height:1.15;margin:.25em 0}h2,h3{margin:0 0 12px}main{width:min(1120px,calc(100% - 28px));margin:22px auto}.layout{display:grid;grid-template-columns:minmax(225px,1fr) minmax(0,3fr);gap:16px}section,aside{background:white;border:1px solid #d7e3ef;border-radius:16px;padding:18px}.muted{color:#516881}.toolbar{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}.stack{display:grid;gap:8px}.stack button{text-align:left}input,button,select{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid #a9bed3;color:inherit;background:white}button{cursor:pointer;font-weight:600}button[aria-pressed=true],button.primary{background:#175da2;color:white;border-color:#175da2}button:disabled{opacity:.54;cursor:default}label{display:grid;gap:4px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:9px 8px;border-bottom:1px solid #dbe6ef}th{background:#edf4fa}dialog{width:min(760px,calc(100% - 24px));max-height:90dvh;border:1px solid #c6d8ea;border-radius:15px;padding:20px;color:inherit}dialog::backdrop{background:#102b4b99}.dialog-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.error{color:#9b2323}.field-row{display:flex;gap:12px;flex-wrap:wrap}.mark{min-width:70px;width:90px}details{margin-top:12px}footer{margin:14px 0;color:#516881}@media(max-width:700px){.layout{grid-template-columns:1fr}.stack{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}section,aside{padding:12px}}
+.academic-schedule{background:#edf4fa;border-radius:10px;padding:12px 14px;margin:14px 0}.academic-schedule ul{padding-left:20px;margin:7px 0}.academic-schedule p{margin:6px 0}.date-warning{color:#80500b}
+</style></head><body>
+<header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1><p>Демонстраційна версія · умовні картки й навчальний план</p></header>
+<main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted">Перший курс · демонстраційний набір</p><label>Пошук за ПІБ<input id="search" type="search"></label><div id="students" class="stack toolbar"></div></aside>
+<section aria-labelledby="name"><h2 id="name"></h2><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="demoPlan" type="button">Демонстраційний план</button><button id="ownPlan" type="button">Мій навчальний план</button><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div><p id="notice" role="status"></p></section></div>
+<footer>Зміни в демонстраційних картках зберігаються в цьому браузері.</footer></main>
+<dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
+<dialog id="group" aria-labelledby="group-title"><form id="groupForm"><div class="dialog-head"><h2 id="group-title">Відомість дисципліни</h2><button type="button" data-close="group" aria-label="Закрити">✕</button></div><p id="groupInfo"></p><div class="field-row"><label>Запланована дата<input id="planned" type="date"></label><label>Дата складання для нових балів<input id="groupDate" type="date"></label></div><p id="sessionNote" aria-live="polite"></p><p class="muted">Заповніть лише бали, які потрібно внести.</p><div class="table-wrap"><table><thead><tr><th scope="col">ПІБ</th><th scope="col">Останній бал</th><th scope="col">Новий бал</th></tr></thead><tbody id="groupRows"></tbody></table></div><p id="groupError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти відомість</button><button type="button" id="export">Експорт в Excel</button></div></form></dialog>
+<dialog id="plan" aria-labelledby="planTitle"><form id="planForm"><div class="dialog-head"><h2 id="planTitle"></h2><button type="button" data-close="plan" aria-label="Закрити">✕</button></div>
+<label>Назва дисципліни<input id="courseName" required maxlength="200"></label>
+<div class="field-row toolbar"><label>Рік навчання<select id="courseYear"><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label>Півріччя<select id="courseTerm"><option>1</option><option>2</option></select></label><label>Кредити ЄКТС<input id="courseCredits" type="number" min="0.01" step="0.01" required></label><label>Форма контролю<select id="courseControl"><option>Екзамен</option><option>Залік</option><option>Диференційований залік</option><option>Інше</option></select></label><label>Тип дисципліни<select id="courseKind"><option>Обов’язкова</option><option>Вибіркова</option></select></label></div>
+<p id="planError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти дисципліну</button><button type="button" id="removeCourse" hidden>Видалити дисципліну</button></div></form></dialog>
+<dialog id="scheduleDialog" aria-labelledby="scheduleEditTitle"><form id="scheduleForm"><div class="dialog-head"><h2 id="scheduleEditTitle"></h2><button type="button" data-close="scheduleDialog" aria-label="Закрити">✕</button></div><p>Внесіть дати із затвердженого графіка. Для кожного періоду можна залишити обидві дати порожніми.</p><div class="stack" id="scheduleFields"></div><p id="scheduleError" role="alert" class="error"></p><button class="primary">Зберегти графік</button></form></dialog><script>"use strict";
+
+function councilWorkbook(rows, filters){
+ const spreadsheet="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+ const relationships="http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+ const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ const escapeXml=value=>String(value).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g,"").replace(/[&<>\r]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\r":"&#13;"}[ch]));
+ const worksheet=(data,widths,filter)=>{
+  const lastColumn=String.fromCharCode(64+widths.length);
+  const cols=widths.map((width,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+width+'" customWidth="1"/>').join("");
+  const sheetRows=data.map((row,i)=>{
+   const cells=row.map((value,j)=>{
+    const address=String.fromCharCode(65+j)+(i+1);
+    return typeof value==="number"
+     ? '<c r="'+address+'"><v>'+value+'</v></c>'
+     : '<c r="'+address+'" t="inlineStr"><is><t xml:space="preserve">'+escapeXml(value)+'</t></is></c>';
+   }).join("");
+   return '<row r="'+(i+1)+'">'+cells+'</row>';
+  }).join("");
+  const range='A1:'+lastColumn+data.length;
+  const view=filter?'<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>':'';
+  const autoFilter=filter?'<autoFilter ref="'+range+'"/>':'';
+  return xml+'<worksheet xmlns="'+spreadsheet+'"><dimension ref="'+range+'"/>'+view+'<cols>'+cols+'</cols><sheetData>'+sheetRows+'</sheetData>'+autoFilter+'</worksheet>';
+ };
+ const rels=entries=>xml+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+entries.map(([type,target],i)=>'<Relationship Id="rId'+(i+1)+'" Type="'+relationships+'/'+type+'" Target="'+target+'"/>').join("")+'</Relationships>';
+ const files={
+  "[Content_Types].xml":xml+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
+  "_rels/.rels":rels([["officeDocument","xl/workbook.xml"]]),
+  "xl/workbook.xml":xml+'<workbook xmlns="'+spreadsheet+'" xmlns:r="'+relationships+'"><bookViews><workbookView/></bookViews><sheets><sheet name="Відомість" sheetId="1" r:id="rId1"/><sheet name="Параметри" sheetId="2" r:id="rId2"/></sheets></workbook>',
+  "xl/_rels/workbook.xml.rels":rels([["worksheet","worksheets/sheet1.xml"],["worksheet","worksheets/sheet2.xml"]]),
+  "xl/worksheets/sheet1.xml":worksheet(rows,[46,18,18,12],true),
+  "xl/worksheets/sheet2.xml":worksheet([["Параметр","Значення"],...filters],[25,65],false)
+ };
+ return councilWorkbookZip(files);
+}
+
+// XLSX packages are ZIP archives. Store the small XML files without compression.
+function councilWorkbookZip(files){
+ const encoder=new TextEncoder(), contents=[], directory=[];
+ const header=(length,signature)=>{
+  const bytes=new Uint8Array(length), view=new DataView(bytes.buffer);
+  view.setUint32(0,signature,true);
+  return {bytes,view};
+ };
+ const checksum=bytes=>{
+  let crc=0xffffffff;
+  for(const byte of bytes){
+   crc^=byte;
+   for(let bit=0;bit<8;bit++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
+  }
+  return (crc^0xffffffff)>>>0;
+ };
+ const writeMetadata=(view,start,data,name,crc)=>{
+  view.setUint16(start,20,true);
+  view.setUint16(start+8,33,true);
+  view.setUint32(start+10,crc,true);
+  view.setUint32(start+14,data.length,true);
+  view.setUint32(start+18,data.length,true);
+  view.setUint16(start+22,name.length,true);
+ };
+ let offset=0,directoryLength=0;
+ for(const [path,xml] of Object.entries(files)){
+  const name=encoder.encode(path),data=encoder.encode(xml),crc=checksum(data);
+  const local=header(30,0x04034b50),central=header(46,0x02014b50);
+  writeMetadata(local.view,4,data,name,crc);
+  central.view.setUint16(4,20,true);
+  writeMetadata(central.view,6,data,name,crc);
+  central.view.setUint32(42,offset,true);
+  contents.push(local.bytes,name,data);
+  directory.push(central.bytes,name);
+  offset+=local.bytes.length+name.length+data.length;
+  directoryLength+=central.bytes.length+name.length;
+ }
+ const end=header(22,0x06054b50), count=Object.keys(files).length;
+ end.view.setUint16(8,count,true);
+ end.view.setUint16(10,count,true);
+ end.view.setUint32(12,directoryLength,true);
+ end.view.setUint32(16,offset,true);
+ return new Blob([...contents,...directory,end.bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+
+function downloadEducationWorkbook(period,rows,filters){
+ const link=document.createElement("a");
+ link.href=URL.createObjectURL(councilWorkbook(rows,filters));
+ link.download="vidomist-"+period+".xlsx";
+ document.body.append(link);
+ link.click();
+ link.remove();
+ setTimeout(()=>URL.revokeObjectURL(link.href),60000);
+}
+</script><script>"use strict";
+const $=id=>document.getElementById(id);
+const students=[
+ {id:1,name:"Коваль Марія Андріївна"},
+ {id:2,name:"Лисенко Олексій Сергійович"},
+ {id:3,name:"Мельник Ірина Вікторівна"}
+];
+const program="Право (демонстраційний план)", cohort=2026;
+const courses=[
+ {id:"language",name:"Іноземна мова",year:1,term:1,credits:4,control:"Екзамен"},
+ {id:"method",name:"Методологія досліджень",year:1,term:1,credits:3,control:"Залік"},
+ {id:"integrity",name:"Академічна доброчесність",year:1,term:1,credits:2,control:"Залік"},
+ {id:"writing",name:"Академічне письмо",year:1,term:2,credits:3,control:"Залік"},
+ {id:"legal",name:"Методи правових досліджень",year:1,term:2,credits:4,control:"Екзамен"},
+ {id:"teaching",name:"Педагогічна практика",year:2,term:1,credits:4,control:"Залік"}
+];
+const defaultData={planned:{language:"2026-12-18",method:"2026-12-22"},results:{"1:language":[{date:"2026-11-18",score:89}]}};
+const key="nubip-education-demo-v1";
+function loadData(){
+ try {const data=JSON.parse(localStorage.getItem(key));if(data?.planned&&data?.results)return data;} catch {}
+ return defaultData;
+}
+const ownKey="nubip-education-own-plan-v1";
+function loadOwnPlan(){
+ try {
+  const record=JSON.parse(localStorage.getItem(ownKey));
+  if(Array.isArray(record?.courses)&&record?.planned&&record?.results)return record;
+ } catch {}
+ return {courses:[],planned:{},results:{}};
+}
+let own=true, data=loadOwnPlan(), selected=students[0], year=1, term=1, course, editing;
+const planName=()=>own?"Ручний план · демонстраційна група":program;
+const dateLabel=date=>date?date.split("-").reverse().join("."):"—";
+const history=(student,subject)=>data.results[student.id+":"+subject.id]??[];
+const latest=(student,subject)=>history(student,subject).at(-1);
+function el(tag,value){
+ const node=document.createElement(tag);
+ if(value!==undefined)node.textContent=value;
+ return node;
+}
+function button(label,click,pressed){
+ const node=el("button",label);node.type="button";node.onclick=click;
+ if(pressed!==undefined)node.setAttribute("aria-pressed",String(pressed));
+ return node;
+}
+function save(next,errorId,message){
+ try {localStorage.setItem(own?ownKey:key,JSON.stringify(next));} catch {
+  $(errorId).textContent="Браузер не дозволив зберегти зміни.";return false;
+ }
+ data=next;render();$("notice").textContent=message;return true;
+}
+function addAttempt(next,student,subject,date,score){
+ const id=student.id+":"+subject.id;
+ next.results[id]=[...(next.results[id]??[]),{date,score}].sort((a,b)=>a.date.localeCompare(b.date));
+}
+function renderStudents(){
+ const query=$("search").value.trim().toLocaleLowerCase("uk");
+ const matches=students.filter(student=>student.name.toLocaleLowerCase("uk").includes(query));
+ $("students").replaceChildren(...matches.map(student=>button(student.name,()=>{
+  selected=student;render();$("notice").textContent="";
+ },student===selected)));
+ if(!matches.length)$("students").append(el("p","За цим запитом нікого не знайдено."));
+}
+const academicSchedule = {
+  2026: {
+    1: {
+      fullTime: ["2026-10-05","2026-12-11"],
+      partTime: ["2026-11-16","2026-12-11"],
+      session: ["2026-12-14","2026-12-31"],
+      research: ["2027-01-01","2027-02-01"]
+    },
+    2: {
+      fullTime: ["2027-02-01","2027-05-14"],
+      partTime: ["2027-04-19","2027-05-14"],
+      session: ["2027-05-17","2027-05-28"],
+      reporting: ["2027-05-31","2027-06-11"],
+      practice: ["2027-02-01","2027-05-14"],
+      research: ["2027-06-14","2027-08-31"]
+    }
+  }
+};
+const scheduleKey="nubip-education-schedule-v1";
+let schedules={};
+try {schedules=JSON.parse(localStorage.getItem(scheduleKey))??{};} catch {}
+const scheduleFor=(y,t)=>academicSchedule[cohort+y-1]?.[t]??schedules[cohort+y-1]?.[t];
+const scheduleLabels={fullTime:"Денна форма · заняття",partTime:"Заочна форма · заняття",session:"Екзаменаційна сесія",reporting:"Звітування",practice:"Асистентська практика",research:"Наукова робота"};
+let editingSchedule;
+$("editSchedule").onclick=()=>{
+ const start=cohort+year-1;
+ editingSchedule={start,half:term};
+ $("scheduleEditTitle").textContent=start+"–"+(start+1)+" · "+term+" півріччя";
+ $("scheduleError").textContent="";
+ const current=scheduleFor(year,term);
+ $("scheduleFields").replaceChildren(...Object.entries(scheduleLabels).map(([key,label])=>{
+  const field=el("fieldset"), row=el("div");
+  field.append(el("legend",label));row.className="field-row";
+  for(const [index,caption] of ["Початок","Завершення"].entries()){
+   const wrapper=el("label",caption), input=el("input");
+   input.type="date";input.name=key+index;input.value=current?.[key]?.[index]??"";
+   wrapper.append(input);row.append(wrapper);
+  }
+  field.append(row);return field;
+ }));
+ $("scheduleDialog").showModal();
+};
+$("scheduleForm").onsubmit=event=>{
+ event.preventDefault();
+ const {start,half}=editingSchedule;
+ const dates=new FormData(event.currentTarget), schedule={};
+ for(const [key,label] of Object.entries(scheduleLabels)){
+  const begin=dates.get(key+"0"), end=dates.get(key+"1");
+  if(!begin&&!end)continue;
+  if(!begin||!end||begin>end){
+   $("scheduleError").textContent="Перевірте початок і завершення періоду «"+label+"».";
+   return;
+  }
+  schedule[key]=[begin,end];
+ }
+ if(!Object.keys(schedule).length){$("scheduleError").textContent="Вкажіть хоча б один період.";return;}
+ const next={...schedules,[start]:{...schedules[start],[half]:schedule}};
+ try {localStorage.setItem(scheduleKey,JSON.stringify(next));} catch {
+  $("scheduleError").textContent="Не вдалося зберегти графік у браузері.";return;
+ }
+ schedules=next;$("scheduleDialog").close();renderSchedule();
+};
+const dateRange=range=>range.map(dateLabel).join(" – ");
+function renderSchedule(){
+ const start=cohort+year-1;
+ const schedule=scheduleFor(year,term);
+ $("editSchedule").hidden=Boolean(academicSchedule[start]);
+ $("editSchedule").textContent=schedule?"Редагувати графік півріччя":"Внести графік півріччя";
+ $("scheduleTitle").textContent="Графік освітнього процесу · "+start+"–"+(start+1);
+ const entries=schedule?[
+  ["Заняття",schedule[$("studyMode").value]],
+  [term===1?"Зимова екзаменаційна сесія":"Літня екзаменаційна сесія",schedule.session],
+  ["Звітування (1–4 роки навчання)",schedule.reporting],
+  ["Асистентська практика (індивідуально за навчальним планом)",schedule.practice],
+  ["Наукова робота",schedule.research]
+ ].filter(([,dates])=>dates).map(([label,dates])=>el("li",label+" · "+dateRange(dates))):
+ [el("li","Графік на цей навчальний рік ще не додано.")];
+ $("scheduleDates").replaceChildren(...entries);
+}
+function updateSessionNote(){
+ const session=scheduleFor(course.year,course.term)?.session;
+ const date=$("planned").value;
+ const outside=session && date && (date<session[0]||date>session[1]);
+ const note=$("sessionNote");
+ note.className=outside?"date-warning":"muted";
+ note.textContent=!session?"Період сесії для цього півріччя ще не внесено.":
+  "Сесія за графіком · "+dateRange(session)+(outside?". Запланована дата поза цим періодом.":"");
+}
+$("studyMode").onchange=renderSchedule;
+$("planned").oninput=updateSessionNote;
+function render(){
+ renderSchedule();
+ renderStudents();
+ $("name").textContent=selected.name;
+ $("profile").textContent=planName()+" · Навчання 01.10.2026 – 30.09.2030";
+ $("years").replaceChildren(...[1,2,3,4].map(value=>button(value+" рік",()=>{year=value;term=1;render();},year===value)));
+ $("terms").replaceChildren(...[1,2].map(value=>button(value+" півріччя",()=>{term=value;render();},term===value)));
+ $("demoPlan").setAttribute("aria-pressed",String(!own));
+ $("ownPlan").setAttribute("aria-pressed",String(own));
+ $("addCourse").hidden=!own;
+ const rows=(own?data.courses:courses).filter(row=>row.year===year&&row.term===term);
+ $("courses").replaceChildren();
+ if(!rows.length){$("courses").append(el("p",own?"У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну».":"Для цього півріччя демонстраційних дисциплін немає."));return;}
+ const wrap=el("div"), table=el("table"), heading=el("tr");
+ wrap.className="table-wrap";
+ for(const title of ["Дисципліна","ЄКТС","Контроль","Заплановано","Складено","Бал","Дії"]){const th=el("th",title);th.scope="col";heading.append(th);}
+ const head=el("thead"), body=el("tbody");head.append(heading);table.append(head,body);
+ for(const subject of rows){
+  const result=latest(selected,subject), row=el("tr"), actions=el("td");
+  for(const value of [subject.kind?subject.name+" · "+subject.kind.toLocaleLowerCase("uk"):subject.name,subject.credits,subject.control,dateLabel(data.planned[subject.id]),dateLabel(result?.date),result?.score??"—"])row.append(el("td",value));
+  const tools=el("div");tools.className="toolbar";
+  tools.append(button("Результат",()=>openResult(subject)),button("Відомість",()=>openGroup(subject)));
+  if(own)tools.append(button("Редагувати",()=>openPlan(subject)));
+  actions.append(tools);row.append(actions);body.append(row);
+ }
+ wrap.append(table);$("courses").append(wrap);
+}
+function openResult(subject){
+ course=subject;$("resultForm").reset();$("resultError").textContent="";
+ $("resultInfo").textContent=selected.name+" · "+subject.name;
+ $("history").open=false;
+ const attempts=history(selected,subject);
+ $("attempts").replaceChildren(...attempts.map(attempt=>el("li",dateLabel(attempt.date)+" · "+attempt.score+" балів")));
+ $("history").hidden=!attempts.length;$("result").showModal();
+}
+$("resultForm").onsubmit=event=>{
+ event.preventDefault();
+ const next=structuredClone(data);
+ addAttempt(next,selected,course,$("resultDate").value,$("resultScore").valueAsNumber);
+ if(save(next,"resultError","Результат збережено."))$("result").close();
+};
+function openGroup(subject){
+ course=subject;$("groupForm").reset();$("groupError").textContent="";
+ $("groupInfo").textContent=subject.name+" · "+planName()+" · набір "+cohort;
+ $("planned").value=data.planned[subject.id]??"";
+ updateSessionNote();
+ $("groupRows").replaceChildren(...students.map(student=>{
+  const row=el("tr"), cell=el("td"), score=el("input");score.type="number";score.className="mark";
+  score.min="0";score.max="100";score.step="1";score.name="score-"+student.id;
+  score.setAttribute("aria-label","Новий бал · "+student.name);
+  cell.append(score);row.append(el("td",student.name),el("td",latest(student,subject)?.score??"—"),cell);
+  return row;
+ }));
+ $("group").showModal();
+}
+$("groupForm").onsubmit=event=>{
+ event.preventDefault();$("groupError").textContent="";
+ const fields=event.currentTarget.elements, date=$("groupDate").value;
+ const marked=students.filter(student=>fields.namedItem("score-"+student.id).value!=="");
+ if(marked.length&&!date){$("groupError").textContent="Для нових балів укажіть дату складання.";$("groupDate").focus();return;}
+ const next=structuredClone(data);
+ next.planned[course.id]=$("planned").value;
+ for(const student of marked)addAttempt(next,student,course,date,fields.namedItem("score-"+student.id).valueAsNumber);
+ if(save(next,"groupError","Відомість збережено."))$("group").close();
+};
+$("export").onclick=()=>{
+ const rows=[["ПІБ","Заплановано","Складено","Бал"]];
+ for(const student of students){
+  const result=latest(student,course);
+  rows.push([student.name,dateLabel(data.planned[course.id]),dateLabel(result?.date),result?.score??""]);
+ }
+ downloadEducationWorkbook(cohort,rows,[["План",planName()],["Дисципліна",course.name],["Контроль",course.control],["Курс",course.year],["Півріччя",course.term]]);
+};
+function switchPlan(showOwn){
+ if(own===showOwn)return;
+ own=showOwn;data=own?loadOwnPlan():loadData();
+ $("notice").textContent="";render();
+}
+$("demoPlan").onclick=()=>switchPlan(false);
+$("ownPlan").onclick=()=>switchPlan(true);
+$("addCourse").onclick=()=>openPlan();
+function hasResults(subject){
+ return students.some(student=>history(student,subject).length);
+}
+function openPlan(subject){
+ editing=subject;
+ $("planForm").reset();$("planError").textContent="";
+ $("planTitle").textContent=subject?"Редагувати дисципліну":"Додати дисципліну";
+ $("courseName").value=subject?.name??"";
+ $("courseYear").value=String(subject?.year??year);
+ $("courseTerm").value=String(subject?.term??term);
+ $("courseCredits").value=subject?.credits??"";
+ $("courseControl").value=subject?.control??"Екзамен";
+ $("courseKind").value=subject?.kind??"Обов’язкова";
+ $("removeCourse").hidden=!subject||hasResults(subject);
+ $("plan").showModal();
+}
+$("planForm").onsubmit=event=>{
+ event.preventDefault();
+ const name=$("courseName").value.trim();
+ if(!name){$("planError").textContent="Вкажіть назву дисципліни.";$("courseName").focus();return;}
+ const next=structuredClone(data);
+ const subject={id:editing?.id??String(next.courses.reduce((max,item)=>Math.max(max,Number(item.id)),0)+1),name,credits:$("courseCredits").valueAsNumber,
+  year:Number($("courseYear").value),term:Number($("courseTerm").value),control:$("courseControl").value,kind:$("courseKind").value};
+ if(next.courses.some(item=>item.id!==subject.id&&item.year===subject.year&&item.term===subject.term&&item.name.toLocaleLowerCase("uk")===name.toLocaleLowerCase("uk"))){
+  $("planError").textContent="Дисципліна з такою назвою вже є в цьому півріччі.";return;
+ }
+ if(editing)next.courses=next.courses.map(item=>item.id===subject.id?subject:item);
+ else next.courses.push(subject);
+ if(save(next,"planError","Дисципліну збережено.")){year=subject.year;term=subject.term;render();$("plan").close();}
+};
+$("removeCourse").onclick=()=>{
+ if(!editing||hasResults(editing)||!confirm("Видалити дисципліну «"+editing.name+"» з плану?"))return;
+ const next=structuredClone(data);next.courses=next.courses.filter(item=>item.id!==editing.id);
+ delete next.planned[editing.id];
+ if(save(next,"planError","Дисципліну видалено."))$("plan").close();
+};
+for(const button of document.querySelectorAll("[data-close]"))button.onclick=()=>$(button.dataset.close).close();
+$("search").oninput=renderStudents;
+render();
+</script></body></html>
