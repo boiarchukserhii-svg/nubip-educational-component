@@ -5,7 +5,7 @@
 .academic-schedule{background:#edf4fa;border-radius:10px;padding:12px 14px;margin:14px 0}.academic-schedule ul{padding-left:20px;margin:7px 0}.academic-schedule p{margin:6px 0}.date-warning{color:#80500b}
 </style></head><body>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1><p>Демонстраційна версія · умовні картки й навчальний план</p></header>
-<main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted">Перший курс · демонстраційний набір</p><label>Пошук за ПІБ<input id="search" type="search"></label><div id="students" class="stack toolbar"></div></aside>
+<main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted" id="rosterLabel"></p><label>Пошук за ПІБ<input id="search" type="search"></label><div class="toolbar"><button id="importLocal" type="button">Перенести 1 курс із «Аспірантів»</button><button id="importBackup" type="button">Відкрити JSON-копію «Аспірантів»</button><input id="registryFile" type="file" accept=".json,application/json" hidden></div><p id="importStatus" role="status"></p><div id="students" class="stack toolbar"></div></aside>
 <section aria-labelledby="name"><h2 id="name"></h2><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="demoPlan" type="button">Демонстраційний план</button><button id="ownPlan" type="button">Мій навчальний план</button><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div><p id="notice" role="status"></p></section></div>
 <footer>Зміни в демонстраційних картках зберігаються в цьому браузері.</footer></main>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
@@ -106,7 +106,7 @@ function downloadEducationWorkbook(period,rows,filters){
 }
 </script><script>"use strict";
 const $=id=>document.getElementById(id);
-const students=[
+const demoStudents=[
  {id:1,name:"Коваль Марія Андріївна"},
  {id:2,name:"Лисенко Олексій Сергійович"},
  {id:3,name:"Мельник Ірина Вікторівна"}
@@ -127,15 +127,71 @@ function loadData(){
  return defaultData;
 }
 const ownKey="nubip-education-own-plan-v1";
-function loadOwnPlan(){
+function loadOwnPlan(storageKey=ownKey){
  try {
-  const record=JSON.parse(localStorage.getItem(ownKey));
+  const record=JSON.parse(localStorage.getItem(storageKey));
   if(Array.isArray(record?.courses)&&record?.planned&&record?.results)return record;
  } catch {}
  return {courses:[],planned:{},results:{}};
 }
-let own=true, data=loadOwnPlan(), selected=students[0], year=1, term=1, course, editing;
-const planName=()=>own?"Ручний план · демонстраційна група":program;
+const registryKey="aspirantura-nubip.registry.v1";
+const rosterKey="nubip-education-first-year-v1";
+let roster=[];
+try {
+ const saved=JSON.parse(localStorage.getItem(rosterKey));
+ if(Array.isArray(saved))roster=saved;
+} catch {}
+let students=roster.length?roster:demoStudents, own=true, selected=students[0], year=1, term=1, course, editing;
+const real=()=>students!==demoStudents;
+const groupKey=student=>JSON.stringify([student.programId??student.program,student.specialty,student.cohort,student.mode]);
+const groupStudents=()=>real()?students.filter(student=>groupKey(student)===groupKey(selected)):students;
+const studyCohort=()=>real()?selected.cohort:cohort;
+const activePlanKey=()=>real()?ownKey+":"+groupKey(selected):own?ownKey:key;
+const planName=()=>real()?selected.program+" · "+selected.mode:own?"Ручний план · демонстраційна група":program;
+let data=loadOwnPlan(activePlanKey());
+function importFirstYear(cards){
+ if(!Array.isArray(cards))throw Error("Копія реєстру має містити список карток.");
+ const next=new Map();
+ for(const card of cards){
+  if(!card||Number(card["Курс"])!==1||!["Навчається","Академічна відпустка"].includes(card["Контингент"]))continue;
+  const id=card["ID картки"], name=String(card["Здобувач"]??"").trim();
+  if(!Number.isSafeInteger(id)||id<1||!name)throw Error("У картці першокурсника бракує ПІБ або ідентифікатора.");
+  const start=card["Початок навчання"]??"", end=card["Завершення навчання"]??"";
+  next.set(id,{id,name,start,end,cohort:Number(String(start).slice(0,4))||cohort,
+   program:String(card["Освітня програма"]||"ОНП не вказано"),programId:card["ID ОП"]??null,
+   specialty:String(card["Спеціальність"]??""),mode:String(card["Форма навчання"]||"Форму не вказано"),status:card["Контингент"]});
+ }
+ if(!next.size)throw Error("У копії немає карток першого курсу.");
+ const imported=[...next.values()].sort((a,b)=>a.name.localeCompare(b.name,"uk"));
+ localStorage.setItem(rosterKey,JSON.stringify(imported));
+ roster=students=imported;own=true;selectStudent(students[0]);year=1;term=1;render();
+ $("importStatus").textContent="Перенесено карток: "+students.length+".";
+}
+function selectStudent(student){
+ selected=student;
+ if(real()){
+  data=loadOwnPlan(activePlanKey());
+  $("studyMode").value=/заоч/i.test(student.mode)?"partTime":"fullTime";
+ }
+}
+$("importLocal").onclick=()=>{
+ try {
+  const source=JSON.parse(localStorage.getItem(registryKey));
+  if(!Array.isArray(source)||!source.length)throw Error("Локального реєстру не знайдено. Збережіть JSON-копію в «Аспірантах» і відкрийте її тут.");
+  importFirstYear(source);
+ } catch(error){$("importStatus").textContent=error.message;}
+};
+$("importBackup").onclick=()=>$("registryFile").click();
+$("registryFile").onchange=async event=>{
+ const input=event.currentTarget, file=input.files[0];
+ if(!file)return;
+ try {
+  const backup=JSON.parse(await file.text());
+  if(backup?.format!==registryKey)throw Error("Оберіть JSON-копію з додатка «Аспіранти».");
+  importFirstYear(backup.cards);
+ } catch(error){$("importStatus").textContent=error.message;}
+ finally {input.value="";}
+};
 const dateLabel=date=>date?date.split("-").reverse().join("."):"—";
 const history=(student,subject)=>data.results[student.id+":"+subject.id]??[];
 const latest=(student,subject)=>history(student,subject).at(-1);
@@ -150,7 +206,7 @@ function button(label,click,pressed){
  return node;
 }
 function save(next,errorId,message){
- try {localStorage.setItem(own?ownKey:key,JSON.stringify(next));} catch {
+ try {localStorage.setItem(activePlanKey(),JSON.stringify(next));} catch {
   $(errorId).textContent="Браузер не дозволив зберегти зміни.";return false;
  }
  data=next;render();$("notice").textContent=message;return true;
@@ -163,7 +219,7 @@ function renderStudents(){
  const query=$("search").value.trim().toLocaleLowerCase("uk");
  const matches=students.filter(student=>student.name.toLocaleLowerCase("uk").includes(query));
  $("students").replaceChildren(...matches.map(student=>button(student.name,()=>{
-  selected=student;render();$("notice").textContent="";
+  selectStudent(student);render();$("notice").textContent="";
  },student===selected)));
  if(!matches.length)$("students").append(el("p","За цим запитом нікого не знайдено."));
 }
@@ -188,11 +244,11 @@ const academicSchedule = {
 const scheduleKey="nubip-education-schedule-v1";
 let schedules={};
 try {schedules=JSON.parse(localStorage.getItem(scheduleKey))??{};} catch {}
-const scheduleFor=(y,t)=>academicSchedule[cohort+y-1]?.[t]??schedules[cohort+y-1]?.[t];
+const scheduleFor=(y,t)=>academicSchedule[studyCohort()+y-1]?.[t]??schedules[studyCohort()+y-1]?.[t];
 const scheduleLabels={fullTime:"Денна форма · заняття",partTime:"Заочна форма · заняття",session:"Екзаменаційна сесія",reporting:"Звітування",practice:"Асистентська практика",research:"Наукова робота"};
 let editingSchedule;
 $("editSchedule").onclick=()=>{
- const start=cohort+year-1;
+ const start=studyCohort()+year-1;
  editingSchedule={start,half:term};
  $("scheduleEditTitle").textContent=start+"–"+(start+1)+" · "+term+" півріччя";
  $("scheduleError").textContent="";
@@ -231,7 +287,7 @@ $("scheduleForm").onsubmit=event=>{
 };
 const dateRange=range=>range.map(dateLabel).join(" – ");
 function renderSchedule(){
- const start=cohort+year-1;
+ const start=studyCohort()+year-1;
  const schedule=scheduleFor(year,term);
  $("editSchedule").hidden=Boolean(academicSchedule[start]);
  $("editSchedule").textContent=schedule?"Редагувати графік півріччя":"Внести графік півріччя";
@@ -260,8 +316,10 @@ $("planned").oninput=updateSessionNote;
 function render(){
  renderSchedule();
  renderStudents();
+ $("rosterLabel").textContent=real()?"Перший курс · імпортований реєстр":"Перший курс · демонстраційний набір";
  $("name").textContent=selected.name;
- $("profile").textContent=planName()+" · Навчання 01.10.2026 – 30.09.2030";
+ $("profile").textContent=real()? [planName(),selected.specialty,selected.status,"Навчання "+dateLabel(selected.start)+" – "+dateLabel(selected.end)].filter(Boolean).join(" · "):planName()+" · Навчання 01.10.2026 – 30.09.2030";
+ $("demoPlan").hidden=real();$("ownPlan").hidden=real();
  $("years").replaceChildren(...[1,2,3,4].map(value=>button(value+" рік",()=>{year=value;term=1;render();},year===value)));
  $("terms").replaceChildren(...[1,2].map(value=>button(value+" півріччя",()=>{term=value;render();},term===value)));
  $("demoPlan").setAttribute("aria-pressed",String(!own));
@@ -300,10 +358,10 @@ $("resultForm").onsubmit=event=>{
 };
 function openGroup(subject){
  course=subject;$("groupForm").reset();$("groupError").textContent="";
- $("groupInfo").textContent=subject.name+" · "+planName()+" · набір "+cohort;
+ $("groupInfo").textContent=subject.name+" · "+planName()+" · набір "+studyCohort();
  $("planned").value=data.planned[subject.id]??"";
  updateSessionNote();
- $("groupRows").replaceChildren(...students.map(student=>{
+ $("groupRows").replaceChildren(...groupStudents().map(student=>{
   const row=el("tr"), cell=el("td"), score=el("input");score.type="number";score.className="mark";
   score.min="0";score.max="100";score.step="1";score.name="score-"+student.id;
   score.setAttribute("aria-label","Новий бал · "+student.name);
@@ -315,7 +373,7 @@ function openGroup(subject){
 $("groupForm").onsubmit=event=>{
  event.preventDefault();$("groupError").textContent="";
  const fields=event.currentTarget.elements, date=$("groupDate").value;
- const marked=students.filter(student=>fields.namedItem("score-"+student.id).value!=="");
+ const marked=groupStudents().filter(student=>fields.namedItem("score-"+student.id).value!=="");
  if(marked.length&&!date){$("groupError").textContent="Для нових балів укажіть дату складання.";$("groupDate").focus();return;}
  const next=structuredClone(data);
  next.planned[course.id]=$("planned").value;
@@ -324,14 +382,14 @@ $("groupForm").onsubmit=event=>{
 };
 $("export").onclick=()=>{
  const rows=[["ПІБ","Заплановано","Складено","Бал"]];
- for(const student of students){
+ for(const student of groupStudents()){
   const result=latest(student,course);
   rows.push([student.name,dateLabel(data.planned[course.id]),dateLabel(result?.date),result?.score??""]);
  }
- downloadEducationWorkbook(cohort,rows,[["План",planName()],["Дисципліна",course.name],["Контроль",course.control],["Курс",course.year],["Півріччя",course.term]]);
+ downloadEducationWorkbook(studyCohort(),rows,[["План",planName()],["Дисципліна",course.name],["Контроль",course.control],["Курс",course.year],["Півріччя",course.term]]);
 };
 function switchPlan(showOwn){
- if(own===showOwn)return;
+ if(real()||own===showOwn)return;
  own=showOwn;data=own?loadOwnPlan():loadData();
  $("notice").textContent="";render();
 }
@@ -339,7 +397,7 @@ $("demoPlan").onclick=()=>switchPlan(false);
 $("ownPlan").onclick=()=>switchPlan(true);
 $("addCourse").onclick=()=>openPlan();
 function hasResults(subject){
- return students.some(student=>history(student,subject).length);
+ return Object.entries(data.results).some(([id,attempts])=>id.endsWith(':'+subject.id)&&attempts.length);
 }
 function openPlan(subject){
  editing=subject;
@@ -376,5 +434,6 @@ $("removeCourse").onclick=()=>{
 };
 for(const button of document.querySelectorAll("[data-close]"))button.onclick=()=>$(button.dataset.close).close();
 $("search").oninput=renderStudents;
+selectStudent(selected);
 render();
 </script></body></html>
