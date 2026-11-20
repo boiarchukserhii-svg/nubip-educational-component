@@ -176,7 +176,7 @@ try {
  const saved=JSON.parse(localStorage.getItem(rosterKey));
  if(Array.isArray(saved))roster=saved;
 } catch {}
-let students=roster, selected=students[0], year=null, term=1, course, editing;
+let students=roster, selected=null, year=null, term=1, course, editing;
 const groupKey=student=>JSON.stringify([student.programId??student.program,student.specialty,student.cohort,student.mode]);
 const groupStudents=()=>students.filter(student=>groupKey(student)===groupKey(selected));
 const studyCohort=()=>selected.cohort;
@@ -198,7 +198,7 @@ function importFirstYear(cards){
  if(!next.size)throw Error("У копії немає карток першого курсу.");
  const imported=[...next.values()].sort((a,b)=>a.name.localeCompare(b.name,"uk"));
  localStorage.setItem(rosterKey,JSON.stringify(imported));
- students=imported;refreshRosterFilters();year=null;term=1;render();
+ students=imported;selectStudent(null);refreshRosterFilters();year=null;term=1;render();
  $("importStatus").textContent="Перенесено карток: "+students.length+".";
 }
 function selectStudent(student){
@@ -269,7 +269,7 @@ function renderStudents(){
   && (!specialtyFilter||specialty(student)===specialtyFilter)
   && (!programFilter||student.program===programFilter))
   .sort((a,b)=>rosterCollator.compare(value(a),value(b))||rosterCollator.compare(a.name,b.name));
- const visible=matches.find(student=>student.id===selected?.id)??matches[0];
+ const visible=matches.find(student=>student.id===selected?.id)??null;
  if(visible!==selected)selectStudent(visible);
  $("rosterLabel").textContent="Перший курс · "+matches.length+" із "+students.length;
  $("students").replaceChildren(...matches.map(student=>button(student.name,()=>{
@@ -373,7 +373,7 @@ function render(){
  $("emptyProfile").hidden=Boolean(selected);
  if(!selected){
   $("name").textContent="Навчальний план";
-  $("emptyProfile").textContent=students.length?"Змініть умови пошуку або фільтри.":"Імпортуйте картки першого курсу з «Аспірантів».";
+  $("emptyProfile").textContent=students.length?"Оберіть аспіранта зі списку або змініть умови пошуку.":"Імпортуйте картки першого курсу з «Аспірантів».";
   return;
  }
  $("name").textContent=selected.name;
