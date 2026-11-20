@@ -1,13 +1,67 @@
 <!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Освітня складова аспірантів</title>
 <style>
-:root{font:16px/1.5 system-ui,sans-serif;color:#163454;background:#f1f6fb}*{box-sizing:border-box}body{margin:0}header{background:#113a61;color:white;padding:28px max(18px,calc((100% - 1120px)/2))}header p{margin:0;color:#d7eafa}h1{font-size:clamp(25px,5vw,38px);line-height:1.15;margin:.25em 0}h2,h3{margin:0 0 12px}main{width:min(1120px,calc(100% - 28px));margin:22px auto}.layout{display:grid;grid-template-columns:minmax(225px,1fr) minmax(0,3fr);gap:16px}section,aside{background:white;border:1px solid #d7e3ef;border-radius:16px;padding:18px}.muted{color:#516881}.toolbar{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}.stack{display:grid;gap:8px}.stack button{text-align:left}input,button,select{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid #a9bed3;color:inherit;background:white}button{cursor:pointer;font-weight:600}button[aria-pressed=true],button.primary{background:#175da2;color:white;border-color:#175da2}button:disabled{opacity:.54;cursor:default}label{display:grid;gap:4px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:9px 8px;border-bottom:1px solid #dbe6ef}th{background:#edf4fa}dialog{width:min(760px,calc(100% - 24px));max-height:90dvh;border:1px solid #c6d8ea;border-radius:15px;padding:20px;color:inherit}dialog::backdrop{background:#102b4b99}.dialog-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.error{color:#9b2323}.field-row{display:flex;gap:12px;flex-wrap:wrap}.mark{min-width:70px;width:90px}details{margin-top:12px}footer{margin:14px 0;color:#516881}@media(max-width:700px){.layout{grid-template-columns:1fr}.stack{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}section,aside{padding:12px}}
-.academic-schedule{background:#edf4fa;border-radius:10px;padding:12px 14px;margin:14px 0}.academic-schedule ul{padding-left:20px;margin:7px 0}.academic-schedule p{margin:6px 0}.date-warning{color:#80500b}
+@font-face{font-family:Zakon;src:url('../aspirantura-nubip/Zakon-Regular.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:Zakon;src:url('../aspirantura-nubip/Zakon-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f7fc;color:#203752;font:15px/1.5 Zakon,Georgia,serif}
+header,main{width:calc(100% - 48px);max-width:1320px;margin-inline:auto}
+header{margin-top:24px;padding:28px;background:#edf3fb;color:#182e4c;border-radius:22px}
+header p{margin:5px 0 0;color:#465b75}
+h1{font-size:clamp(25px,4vw,40px);line-height:1.2;margin:0;letter-spacing:-.03em}
+h2{font-size:clamp(19px,4.4vw,28px);line-height:1.16}
+h3{font-size:clamp(18px,4vw,23px)}
+h2,h3{margin:0 0 12px;color:#182e4c}
+main{margin-top:16px}
+.layout{display:grid;grid-template-columns:minmax(350px,420px) minmax(0,1fr);gap:16px;align-items:start}
+section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radius:15px;padding:16px}
+.muted,footer{color:#465b75}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.stack{display:grid;gap:8px}
+.roster-filters{display:grid;gap:8px;margin-top:10px}
+#years{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+#years button{min-width:0;padding-inline:4px;white-space:nowrap}
+#students{overflow-x:auto;grid-template-columns:minmax(100%,max-content)}
+#students button{white-space:nowrap;text-align:left}
+#name{white-space:nowrap;overflow-x:auto;padding-bottom:2px}
+input,button,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:8px;padding:9px 13px;background:#e9f1fc;color:#15447f;font-weight:650}
+button[aria-pressed=true],button.primary{background:#195bb5;color:white}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #719ee5;outline-offset:2px}
+label{display:grid;gap:4px;font-size:13px;font-weight:620}
+input,select{min-width:0;width:100%;padding:8px;border:1px solid #cbd9e9;border-radius:8px;background:white;color:inherit}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;text-align:left}
+th,td{padding:9px 10px;border-bottom:1px solid #e5edf7;vertical-align:top}
+th{background:#f3f7fd}
+dialog{width:min(760px,calc(100% - 26px));max-height:85dvh;border:1px solid #ccdced;border-radius:16px;padding:20px;color:inherit}
+dialog::backdrop{background:#11294a8a}
+.dialog-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.dialog-head h2{margin:0}
+.error{color:#a52626}
+.field-row{display:flex;gap:12px;flex-wrap:wrap}
+.mark{min-width:70px;width:90px}
+details{margin-top:12px}
+footer{margin:14px 0}
+.academic-schedule{background:#edf4ff;border-radius:14px;padding:13px 15px;margin:14px 0}
+.academic-schedule ul{padding-left:20px;margin:7px 0}
+.academic-schedule p{margin:6px 0}
+.academic-schedule a{color:#195bb5;text-underline-offset:3px}
+.date-warning{color:#754b05}
+[hidden]{display:none!important}
+@media(max-width:760px){
+ header,main{width:calc(100% - 24px)}
+ header{margin-top:12px;padding:20px}
+ .layout{grid-template-columns:minmax(0,1fr)}
+ section,aside{padding:12px}
+}
+@media(max-width:430px){dialog{padding:13px}}
 </style></head><body>
-<header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1><p>Демонстраційна версія · умовні картки й навчальний план</p></header>
-<main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted" id="rosterLabel"></p><label>Пошук за ПІБ<input id="search" type="search"></label><div class="toolbar"><button id="importLocal" type="button">Перенести 1 курс із «Аспірантів»</button><button id="importBackup" type="button">Відкрити JSON-копію «Аспірантів»</button><input id="registryFile" type="file" accept=".json,application/json" hidden></div><p id="importStatus" role="status"></p><div id="students" class="stack toolbar"></div></aside>
-<section aria-labelledby="name"><h2 id="name"></h2><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="demoPlan" type="button">Демонстраційний план</button><button id="ownPlan" type="button">Мій навчальний план</button><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div><p id="notice" role="status"></p></section></div>
-<footer>Зміни в демонстраційних картках зберігаються в цьому браузері.</footer></main>
+<header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
+<main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted" id="rosterLabel"></p><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div class="toolbar"><button id="importLocal" type="button">Перенести 1 курс із «Аспірантів»</button><button id="importBackup" type="button">Відкрити JSON-копію «Аспірантів»</button><input id="registryFile" type="file" accept=".json,application/json" hidden></div><p id="importStatus" role="status"></p><div id="students" class="stack toolbar"></div></aside>
+<section aria-labelledby="name"><h2 id="name"></h2><p id="emptyProfile" hidden></p><div id="studentProfile"><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="yearContent" hidden><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
+<footer>Зміни зберігаються в цьому браузері.</footer></main>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
 <dialog id="group" aria-labelledby="group-title"><form id="groupForm"><div class="dialog-head"><h2 id="group-title">Відомість дисципліни</h2><button type="button" data-close="group" aria-label="Закрити">✕</button></div><p id="groupInfo"></p><div class="field-row"><label>Запланована дата<input id="planned" type="date"></label><label>Дата складання для нових балів<input id="groupDate" type="date"></label></div><p id="sessionNote" aria-live="polite"></p><p class="muted">Заповніть лише бали, які потрібно внести.</p><div class="table-wrap"><table><thead><tr><th scope="col">ПІБ</th><th scope="col">Останній бал</th><th scope="col">Новий бал</th></tr></thead><tbody id="groupRows"></tbody></table></div><p id="groupError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти відомість</button><button type="button" id="export">Експорт в Excel</button></div></form></dialog>
 <dialog id="plan" aria-labelledby="planTitle"><form id="planForm"><div class="dialog-head"><h2 id="planTitle"></h2><button type="button" data-close="plan" aria-label="Закрити">✕</button></div>
@@ -106,26 +160,7 @@ function downloadEducationWorkbook(period,rows,filters){
 }
 </script><script>"use strict";
 const $=id=>document.getElementById(id);
-const demoStudents=[
- {id:1,name:"Коваль Марія Андріївна"},
- {id:2,name:"Лисенко Олексій Сергійович"},
- {id:3,name:"Мельник Ірина Вікторівна"}
-];
-const program="Право (демонстраційний план)", cohort=2026;
-const courses=[
- {id:"language",name:"Іноземна мова",year:1,term:1,credits:4,control:"Екзамен"},
- {id:"method",name:"Методологія досліджень",year:1,term:1,credits:3,control:"Залік"},
- {id:"integrity",name:"Академічна доброчесність",year:1,term:1,credits:2,control:"Залік"},
- {id:"writing",name:"Академічне письмо",year:1,term:2,credits:3,control:"Залік"},
- {id:"legal",name:"Методи правових досліджень",year:1,term:2,credits:4,control:"Екзамен"},
- {id:"teaching",name:"Педагогічна практика",year:2,term:1,credits:4,control:"Залік"}
-];
-const defaultData={planned:{language:"2026-12-18",method:"2026-12-22"},results:{"1:language":[{date:"2026-11-18",score:89}]}};
-const key="nubip-education-demo-v1";
-function loadData(){
- try {const data=JSON.parse(localStorage.getItem(key));if(data?.planned&&data?.results)return data;} catch {}
- return defaultData;
-}
+const cohort=2026;
 const ownKey="nubip-education-own-plan-v1";
 function loadOwnPlan(storageKey=ownKey){
  try {
@@ -141,14 +176,13 @@ try {
  const saved=JSON.parse(localStorage.getItem(rosterKey));
  if(Array.isArray(saved))roster=saved;
 } catch {}
-let students=roster.length?roster:demoStudents, own=true, selected=students[0], year=1, term=1, course, editing;
-const real=()=>students!==demoStudents;
+let students=roster, selected=students[0], year=null, term=1, course, editing;
 const groupKey=student=>JSON.stringify([student.programId??student.program,student.specialty,student.cohort,student.mode]);
-const groupStudents=()=>real()?students.filter(student=>groupKey(student)===groupKey(selected)):students;
-const studyCohort=()=>real()?selected.cohort:cohort;
-const activePlanKey=()=>real()?ownKey+":"+groupKey(selected):own?ownKey:key;
-const planName=()=>real()?selected.program+" · "+selected.mode:own?"Ручний план · демонстраційна група":program;
-let data=loadOwnPlan(activePlanKey());
+const groupStudents=()=>students.filter(student=>groupKey(student)===groupKey(selected));
+const studyCohort=()=>selected.cohort;
+const activePlanKey=()=>ownKey+":"+groupKey(selected);
+const planName=()=>selected.program+" · "+selected.mode;
+let data;
 function importFirstYear(cards){
  if(!Array.isArray(cards))throw Error("Копія реєстру має містити список карток.");
  const next=new Map();
@@ -164,15 +198,15 @@ function importFirstYear(cards){
  if(!next.size)throw Error("У копії немає карток першого курсу.");
  const imported=[...next.values()].sort((a,b)=>a.name.localeCompare(b.name,"uk"));
  localStorage.setItem(rosterKey,JSON.stringify(imported));
- roster=students=imported;own=true;selectStudent(students[0]);year=1;term=1;render();
+ students=imported;refreshRosterFilters();year=null;term=1;render();
  $("importStatus").textContent="Перенесено карток: "+students.length+".";
 }
 function selectStudent(student){
+ if(selected?.id!==student?.id){year=null;term=1;}
  selected=student;
- if(real()){
-  data=loadOwnPlan(activePlanKey());
-  $("studyMode").value=/заоч/i.test(student.mode)?"partTime":"fullTime";
- }
+ if(!student)return;
+ data=loadOwnPlan(activePlanKey());
+ $("studyMode").value=/заоч/i.test(student.mode)?"partTime":"fullTime";
 }
 $("importLocal").onclick=()=>{
  try {
@@ -215,13 +249,33 @@ function addAttempt(next,student,subject,date,score){
  const id=student.id+":"+subject.id;
  next.results[id]=[...(next.results[id]??[]),{date,score}].sort((a,b)=>a.date.localeCompare(b.date));
 }
+const rosterCollator=new Intl.Collator("uk",{numeric:true,sensitivity:"base"});
+const specialty=student=>student.specialty||"Спеціальність не вказано";
+function refreshRosterFilters(){
+ for(const [id,label,value] of [["specialtyFilter","Усі спеціальності",specialty],["programFilter","Усі ОНП",student=>student.program]]){
+  const field=$(id), previous=field.value;
+  const values=[...new Set(students.map(value))].sort(rosterCollator.compare);
+  const all=el("option",label);all.value="";
+  field.replaceChildren(all,...values.map(text=>{const item=el("option",text);item.value=text;return item;}));
+  field.value=values.includes(previous)?previous:"";
+  field.disabled=!values.length;
+ }
+}
 function renderStudents(){
  const query=$("search").value.trim().toLocaleLowerCase("uk");
- const matches=students.filter(student=>student.name.toLocaleLowerCase("uk").includes(query));
+ const specialtyFilter=$("specialtyFilter").value, programFilter=$("programFilter").value, sort=$("rosterSort").value;
+ const value=sort==="specialty"?specialty:sort==="program"?student=>student.program:student=>student.name;
+ const matches=students.filter(student=>student.name.toLocaleLowerCase("uk").includes(query)
+  && (!specialtyFilter||specialty(student)===specialtyFilter)
+  && (!programFilter||student.program===programFilter))
+  .sort((a,b)=>rosterCollator.compare(value(a),value(b))||rosterCollator.compare(a.name,b.name));
+ const visible=matches.find(student=>student.id===selected?.id)??matches[0];
+ if(visible!==selected)selectStudent(visible);
+ $("rosterLabel").textContent="Перший курс · "+matches.length+" із "+students.length;
  $("students").replaceChildren(...matches.map(student=>button(student.name,()=>{
   selectStudent(student);render();$("notice").textContent="";
  },student===selected)));
- if(!matches.length)$("students").append(el("p","За цим запитом нікого не знайдено."));
+ if(!matches.length&&students.length)$("students").append(el("p","За цими умовами аспірантів не знайдено."));
 }
 const academicSchedule = {
   2026: {
@@ -314,20 +368,24 @@ function updateSessionNote(){
 $("studyMode").onchange=renderSchedule;
 $("planned").oninput=updateSessionNote;
 function render(){
- renderSchedule();
  renderStudents();
- $("rosterLabel").textContent=real()?"Перший курс · імпортований реєстр":"Перший курс · демонстраційний набір";
+ $("studentProfile").hidden=!selected;
+ $("emptyProfile").hidden=Boolean(selected);
+ if(!selected){
+  $("name").textContent="Навчальний план";
+  $("emptyProfile").textContent=students.length?"Змініть умови пошуку або фільтри.":"Імпортуйте картки першого курсу з «Аспірантів».";
+  return;
+ }
  $("name").textContent=selected.name;
- $("profile").textContent=real()? [planName(),selected.specialty,selected.status,"Навчання "+dateLabel(selected.start)+" – "+dateLabel(selected.end)].filter(Boolean).join(" · "):planName()+" · Навчання 01.10.2026 – 30.09.2030";
- $("demoPlan").hidden=real();$("ownPlan").hidden=real();
+ $("profile").textContent=[planName(),selected.specialty,selected.status,"Навчання "+dateLabel(selected.start)+" – "+dateLabel(selected.end)].filter(Boolean).join(" · ");
  $("years").replaceChildren(...[1,2,3,4].map(value=>button(value+" рік",()=>{year=value;term=1;render();},year===value)));
+ $("yearContent").hidden=year===null;
+ if(year===null)return;
+ renderSchedule();
  $("terms").replaceChildren(...[1,2].map(value=>button(value+" півріччя",()=>{term=value;render();},term===value)));
- $("demoPlan").setAttribute("aria-pressed",String(!own));
- $("ownPlan").setAttribute("aria-pressed",String(own));
- $("addCourse").hidden=!own;
- const rows=(own?data.courses:courses).filter(row=>row.year===year&&row.term===term);
+ const rows=data.courses.filter(row=>row.year===year&&row.term===term);
  $("courses").replaceChildren();
- if(!rows.length){$("courses").append(el("p",own?"У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну».":"Для цього півріччя демонстраційних дисциплін немає."));return;}
+ if(!rows.length){$("courses").append(el("p","У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну»."));return;}
  const wrap=el("div"), table=el("table"), heading=el("tr");
  wrap.className="table-wrap";
  for(const title of ["Дисципліна","ЄКТС","Контроль","Заплановано","Складено","Бал","Дії"]){const th=el("th",title);th.scope="col";heading.append(th);}
@@ -337,7 +395,7 @@ function render(){
   for(const value of [subject.kind?subject.name+" · "+subject.kind.toLocaleLowerCase("uk"):subject.name,subject.credits,subject.control,dateLabel(data.planned[subject.id]),dateLabel(result?.date),result?.score??"—"])row.append(el("td",value));
   const tools=el("div");tools.className="toolbar";
   tools.append(button("Результат",()=>openResult(subject)),button("Відомість",()=>openGroup(subject)));
-  if(own)tools.append(button("Редагувати",()=>openPlan(subject)));
+  tools.append(button("Редагувати",()=>openPlan(subject)));
   actions.append(tools);row.append(actions);body.append(row);
  }
  wrap.append(table);$("courses").append(wrap);
@@ -388,13 +446,6 @@ $("export").onclick=()=>{
  }
  downloadEducationWorkbook(studyCohort(),rows,[["План",planName()],["Дисципліна",course.name],["Контроль",course.control],["Курс",course.year],["Півріччя",course.term]]);
 };
-function switchPlan(showOwn){
- if(real()||own===showOwn)return;
- own=showOwn;data=own?loadOwnPlan():loadData();
- $("notice").textContent="";render();
-}
-$("demoPlan").onclick=()=>switchPlan(false);
-$("ownPlan").onclick=()=>switchPlan(true);
 $("addCourse").onclick=()=>openPlan();
 function hasResults(subject){
  return Object.entries(data.results).some(([id,attempts])=>id.endsWith(':'+subject.id)&&attempts.length);
@@ -433,7 +484,9 @@ $("removeCourse").onclick=()=>{
  if(save(next,"planError","Дисципліну видалено."))$("plan").close();
 };
 for(const button of document.querySelectorAll("[data-close]"))button.onclick=()=>$(button.dataset.close).close();
-$("search").oninput=renderStudents;
+$("search").oninput=render;
+for(const id of ["specialtyFilter","programFilter","rosterSort"])$(id).onchange=render;
+refreshRosterFilters();
 selectStudent(selected);
 render();
 </script></body></html>
