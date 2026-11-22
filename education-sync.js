@@ -1,7 +1,7 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import {getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut}
   from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import {getFirestore, doc, onSnapshot, runTransaction}
+import {getFirestore, collection, doc, onSnapshot, runTransaction}
   from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -48,6 +48,37 @@ export function watch(user, receive, fail) {
   return onSnapshot(accountDocument(user), {includeMetadataChanges: true}, snapshot => {
     if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
     try { receive(read(snapshot)); } catch (error) { fail(error); }
+  }, fail);
+}
+
+export function watchRegistry(user, receive, fail) {
+  accountDocument(user);
+  const registry = collection(db, "workspaces", "aspirantura-nubip", "registry");
+  return onSnapshot(registry, {includeMetadataChanges: true}, snapshot => {
+    if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+    try {
+      const documents = new Map(snapshot.docs.map(item => [item.id, item.data()]));
+      const meta = documents.get("meta");
+      if (!meta && documents.size === 0) {
+        receive([]);
+        return;
+      }
+      if (!Number.isSafeInteger(meta?.revision) || meta.revision < 1
+          || !Number.isInteger(meta.count) || meta.count < 0 || meta.count > 32) {
+        throw Error("Не вдалося прочитати реєстр аспірантів.");
+      }
+      const cards = [];
+      for (let index = 0; index < meta.count; index++) {
+        const part = documents.get("part-" + index);
+        if (part?.revision !== meta.revision || typeof part.data !== "string") {
+          throw Error("Реєстр аспірантів отримано не повністю.");
+        }
+        const rows = JSON.parse(part.data);
+        if (!Array.isArray(rows)) throw Error("Некоректні дані реєстру аспірантів.");
+        cards.push(...rows);
+      }
+      receive(cards);
+    } catch (error) { fail(error); }
   }, fail);
 }
 

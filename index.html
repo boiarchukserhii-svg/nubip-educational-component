@@ -21,6 +21,12 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .muted,footer{color:#465b75}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .stack{display:grid;gap:8px}
+.roster-picker>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
+.program-details .stack{margin:8px 0 4px 12px}
+.profile-fields{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:12px 0 16px}
+.profile-fields dt{font-weight:650}
+.profile-fields dd{margin:0;overflow-wrap:anywhere}
+@media(max-width:430px){.profile-fields{grid-template-columns:1fr;gap:4px}.profile-fields dd{margin-bottom:6px}}
 .roster-filters{display:grid;gap:8px;margin-top:10px}
 #years{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
 #years button{min-width:0;padding-inline:4px;white-space:nowrap}
@@ -72,8 +78,8 @@ details{margin-top:12px}
  <span id="cloudStatus" role="status">Підключення синхронізації…</span>
 </section>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
-<main><div class="layout"><aside><h2>Аспіранти</h2><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div id="students" class="stack toolbar"></div></aside>
-<section aria-labelledby="name"><h2 id="name"></h2><div id="studentProfile"><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="yearContent" hidden><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
+<main><div class="layout"><aside><details class="roster-picker"><summary>Аспіранти 1 курсу</summary><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div id="students" class="stack toolbar"></div></details></aside>
+<section aria-labelledby="name"><h2 id="name"></h2><div id="studentProfile"><dl id="profile" class="profile-fields"></dl><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="yearContent" hidden><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
 <footer class="site-footer"><span>© Сергій БОЯРЧУК, 2026</span><a href="https://nubip.edu.ua/department/viddil-aspirantury-doktorantury-ta-atestatsiyi-naukovykh-kadriv">Відділ аспірантури, докторантури та атестації наукових кадрів</a></footer>
 </main>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
@@ -174,7 +180,7 @@ function downloadEducationWorkbook(period,rows,filters){
 }
 </script><script>"use strict";
 const $=id=>document.getElementById(id);
-let cloudUser=null, cloudState=null, cloud=null, cloudStop=null, writing=false;
+let cloudUser=null, cloudState=null, cloud=null, cloudStop=null, registryStop=null, writing=false;
 const dialogRevisions=new Map();
 function openDataDialog(id){
  dialogRevisions.set(id,cloudState?.revision);
@@ -191,6 +197,7 @@ function applyCloudState(next){
 }
 function refreshData(){
  try {students=studentsForCohort(readRecord(rosterKey));} catch {students=[];}
+ if(!students.length)students=[...registryStudents.values()].sort((a,b)=>rosterCollator.compare(a.name,b.name));
  try {schedules=readRecord(scheduleKey)??{};} catch {schedules={};}
  selectStudent(students.find(student=>student.id===selected?.id)??null);
  refreshRosterFilters();
@@ -249,6 +256,21 @@ function loadOwnPlan(storageKey=ownKey){
  return {courses:[],planned:{},results:{}};
 }
 const rosterKey="nubip-education-first-year-v1";
+let registryStudents=new Map();
+function firstYearRegistry(cards){
+ const result=new Map();
+ for(const card of cards){
+  if(Number(card?.["Курс"])!==1||!["Навчається","Академічна відпустка"].includes(card["Контингент"]))continue;
+  const id=card["ID картки"], name=String(card["Здобувач"]??"").trim(), start=card["Початок навчання"]??"";
+  if(!Number.isSafeInteger(id)||id<1||!name||String(start).slice(0,4)!==String(cohort))continue;
+  result.set(id,{id,name,start,end:card["Завершення навчання"]??"",cohort,
+   program:String(card["Освітня програма"]||"ОНП не вказано"),programId:card["ID ОП"]??null,
+   specialty:String(card["Спеціальність"]??""),mode:String(card["Форма навчання"]||"Форму не вказано"),
+   status:card["Контингент"],department:String(card["Структурний підрозділ"]??""),
+   supervisor:String(card["Науковий керівник"]??"")});
+ }
+ return result;
+}
 let roster=[];
 try {
  const saved=readRecord(rosterKey);
@@ -314,9 +336,26 @@ function renderStudents(){
   .sort((a,b)=>rosterCollator.compare(value(a),value(b))||rosterCollator.compare(a.name,b.name));
  const visible=matches.find(student=>student.id===selected?.id)??null;
  if(visible!==selected)selectStudent(visible);
- $("students").replaceChildren(...matches.map(student=>button(student.name,()=>{
-  selectStudent(student);render();$("notice").textContent="";
- },student===selected)));
+ const expanded=new Set([...$("students").querySelectorAll("details[open]")].map(group=>group.dataset.program));
+ const programs=new Map();
+ for(const student of matches){
+  const key=String(student.programId??student.program);
+  if(!programs.has(key))programs.set(key,{name:student.program,students:[]});
+  programs.get(key).students.push(student);
+ }
+ const groups=[...programs].sort(([,a],[,b])=>rosterCollator.compare(a.name,b.name));
+ $("students").replaceChildren(...groups.map(([key,group])=>{
+  const details=el("details"), list=el("div");
+  details.className="program-details";
+  details.dataset.program=key;
+  details.open=expanded.has(key)||Boolean(query)||Boolean(programFilter)||group.students.includes(selected);
+  list.className="stack";
+  list.append(...group.students.map(student=>button(student.name,()=>{
+   selectStudent(student);render();$("notice").textContent="";
+  },student===selected)));
+  details.append(el("summary",group.name),list);
+  return details;
+ }));
  if(!matches.length&&students.length)$("students").append(el("p","За цими умовами аспірантів не знайдено."));
 }
 const academicSchedule = {
@@ -418,7 +457,17 @@ function render(){
   return;
  }
  $("name").textContent=selected.name;
- $("profile").textContent=[planName(),selected.specialty,selected.status,"Навчання "+dateLabel(selected.start)+" – "+dateLabel(selected.end)].filter(Boolean).join(" · ");
+ const card=registryStudents.get(selected.id)??selected;
+ const facts=[
+  ["Період навчання",dateLabel(card.start)+" – "+dateLabel(card.end)],
+  ["Форма навчання",card.mode],
+  ["Факультет / підрозділ",card.department],
+  ["ОНП",card.program],
+  ["Науковий керівник",card.supervisor],
+  ["Спеціальність",card.specialty],
+  ["Контингент",card.status]
+ ];
+ $("profile").replaceChildren(...facts.flatMap(([label,value])=>[el("dt",label),el("dd",value||"Не зазначено")]));
  $("years").replaceChildren(...[1,2,3,4].map(value=>button(value+" рік",()=>{year=value;term=1;render();},year===value)));
  $("yearContent").hidden=year===null;
  if(year===null)return;
@@ -560,6 +609,9 @@ import("./education-sync.js").then(module=>{
  cloud.observe(user=>{
   cloudStop?.();
   cloudStop=null;
+  registryStop?.();
+  registryStop=null;
+  registryStudents=new Map();
   cloudUser=cloud.isOwner(user)?user:null;
   cloudState=null;
   for(const id of ["scheduleDialog","result","group","plan"])$(id).close();
@@ -573,6 +625,13 @@ import("./education-sync.js").then(module=>{
   }
   cloudStatus("Завантаження даних облікового запису…");
   cloudStop=cloud.watch(cloudUser,applyCloudState,error=>cloudStatus(syncError(error)));
+  const currentUser=cloudUser;
+  registryStop=cloud.watchRegistry(currentUser,cards=>{
+   if(cloudUser!==currentUser)return;
+   registryStudents=firstYearRegistry(cards);
+   refreshData();
+  },error=>console.warn("Не вдалося оновити дані карток аспірантів.",error));
+
  });
 }).catch(error=>cloudStatus("Синхронізація недоступна. Дані зберігаються в цьому браузері."));
 </script><script src="./education-install.js" defer></script></body></html>
