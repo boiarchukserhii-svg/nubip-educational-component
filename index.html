@@ -27,6 +27,7 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .course-kind{display:table;margin-top:4px;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#344a61;font-size:.875rem}
 .course-kind.required{background:#dff3e5;color:#155934}
 .course-kind.elective{background:#dff1fc;color:#145477}
+.course-actions{display:grid;gap:6px}
 .stack{display:grid;gap:8px}
 .roster-picker>summary,.specialty-details>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
 .specialty-details>.stack,.program-details>.stack{margin:8px 0 4px 12px}
@@ -542,7 +543,7 @@ function render(){
    dates.textContent=dateLabel(actualDate||plannedDate);
   }
   row.append(subjectCell,el("td",subject.credits),el("td",subject.control),dates,el("td",result?.score??"—"));
-  const tools=el("div");tools.className="toolbar";
+  const tools=el("div");tools.className="course-actions";
   tools.append(button("Результат",()=>openResult(subject)),button("Відомість",()=>openGroup(subject)));
   tools.append(button("Редагувати",()=>openPlan(subject)));
   actions.append(tools);row.append(actions);body.append(row);
