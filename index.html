@@ -23,6 +23,10 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .year-option{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .year-option>button{inline-size:100%}
 .year-terms{margin:0}
+.credit-summary{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 12px;color:#465b75}
+.course-kind{display:table;margin-top:4px;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#344a61;font-size:.875rem}
+.course-kind.required{background:#dff3e5;color:#155934}
+.course-kind.elective{background:#dff1fc;color:#145477}
 .stack{display:grid;gap:8px}
 .roster-picker>summary,.specialty-details>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
 .specialty-details>.stack,.program-details>.stack{margin:8px 0 4px 12px}
@@ -198,7 +202,7 @@ function applyCloudState(next){
  if(cloudState&&next.revision<cloudState.revision)return;
  cloudState=next;
  refreshData();
- cloudStatus("Дані збережено в Google-акаунті.");
+ cloudStatus("Дані збережено в Google-акаунті");
 }
 function refreshData(){
  try {students=studentsForCohort(readRecord(rosterKey));} catch {students=[];}
@@ -467,6 +471,10 @@ function updateSessionNote(){
 }
 $("studyMode").onchange=renderSchedule;
 $("planned").oninput=updateSessionNote;
+const creditFormat=new Intl.NumberFormat("uk",{maximumFractionDigits:2});
+function creditTotal(courses){
+ return creditFormat.format(courses.reduce((total,{credits})=>total+Number(credits||0),0));
+}
 function render(){
  renderStudents();
  $("studentProfile").hidden=!selected;
@@ -505,6 +513,11 @@ function render(){
  renderSchedule();
  const rows=data.courses.filter(row=>row.year===year&&row.term===term);
  $("courses").replaceChildren();
+ const totals=el("p");
+ totals.className="credit-summary";
+ totals.append(el("span","За півріччя: "+creditTotal(rows)+" ЄКТС"),
+  el("span","За планом: "+creditTotal(data.courses)+" ЄКТС"));
+ $("courses").append(totals);
  if(!rows.length){$("courses").append(el("p","У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну»."));return;}
  const wrap=el("div"), table=el("table"), heading=el("tr");
  wrap.className="table-wrap";
@@ -512,7 +525,17 @@ function render(){
  const head=el("thead"), body=el("tbody");head.append(heading);table.append(head,body);
  for(const subject of rows){
   const result=latest(selected,subject), row=el("tr"), actions=el("td");
-  for(const value of [subject.kind?subject.name+" · "+subject.kind.toLocaleLowerCase("uk"):subject.name,subject.credits,subject.control,dateLabel(data.planned[subject.id]),dateLabel(result?.date),result?.score??"—"])row.append(el("td",value));
+  const subjectCell=el("td",subject.name);
+  if(subject.kind){
+   const kind=el("span",subject.kind);
+   kind.className="course-kind";
+   const normalized=subject.kind.toLocaleLowerCase("uk").replaceAll("'","’");
+   if(normalized==="обов’язкова")kind.classList.add("required");
+   if(normalized==="вибіркова")kind.classList.add("elective");
+   subjectCell.append(kind);
+  }
+  row.append(subjectCell);
+  for(const value of [subject.credits,subject.control,dateLabel(data.planned[subject.id]),dateLabel(result?.date),result?.score??"—"])row.append(el("td",value));
   const tools=el("div");tools.className="toolbar";
   tools.append(button("Результат",()=>openResult(subject)),button("Відомість",()=>openGroup(subject)));
   tools.append(button("Редагувати",()=>openPlan(subject)));
@@ -532,7 +555,7 @@ $("resultForm").onsubmit=async event=>{
  event.preventDefault();
  const next=structuredClone(data);
  addAttempt(next,selected,course,$("resultDate").value,$("resultScore").valueAsNumber);
- if(await save(next,"resultError","Результат збережено."))$("result").close();
+ if(await save(next,"resultError","Результат збережено"))$("result").close();
 };
 function openGroup(subject){
  course=subject;$("groupForm").reset();$("groupError").textContent="";
@@ -556,7 +579,7 @@ $("groupForm").onsubmit=async event=>{
  const next=structuredClone(data);
  next.planned[course.id]=$("planned").value;
  for(const student of marked)addAttempt(next,student,course,date,fields.namedItem("score-"+student.id).valueAsNumber);
- if(await save(next,"groupError","Відомість збережено."))$("group").close();
+ if(await save(next,"groupError","Відомість збережено"))$("group").close();
 };
 $("export").onclick=()=>{
  const rows=[["ПІБ","Заплановано","Складено","Бал"]];
@@ -595,13 +618,13 @@ $("planForm").onsubmit=async event=>{
  }
  if(editing)next.courses=next.courses.map(item=>item.id===subject.id?subject:item);
  else next.courses.push(subject);
- if(await save(next,"planError","Дисципліну збережено.")){year=subject.year;term=subject.term;render();$("plan").close();}
+ if(await save(next,"planError","Дисципліну збережено")){year=subject.year;term=subject.term;render();$("plan").close();}
 };
 $("removeCourse").onclick=async ()=>{
  if(!editing||hasResults(editing)||!confirm("Видалити дисципліну «"+editing.name+"» з плану?"))return;
  const next=structuredClone(data);next.courses=next.courses.filter(item=>item.id!==editing.id);
  delete next.planned[editing.id];
- if(await save(next,"planError","Дисципліну видалено."))$("plan").close();
+ if(await save(next,"planError","Дисципліну видалено"))$("plan").close();
 };
 for(const button of document.querySelectorAll("[data-close]"))button.onclick=()=>$(button.dataset.close).close();
 $("search").oninput=render;
