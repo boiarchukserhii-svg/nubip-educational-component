@@ -521,7 +521,7 @@ function render(){
  if(!rows.length){$("courses").append(el("p","У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну»."));return;}
  const wrap=el("div"), table=el("table"), heading=el("tr");
  wrap.className="table-wrap";
- for(const title of ["Дисципліна","ЄКТС","Контроль","Заплановано","Складено","Бал","Дії"]){const th=el("th",title);th.scope="col";heading.append(th);}
+ for(const title of ["Дисципліна","ЄКТС","Контроль","Дата","Бал","Дії"]){const th=el("th",title);th.scope="col";heading.append(th);}
  const head=el("thead"), body=el("tbody");head.append(heading);table.append(head,body);
  for(const subject of rows){
   const result=latest(selected,subject), row=el("tr"), actions=el("td");
@@ -534,8 +534,14 @@ function render(){
    if(normalized==="вибіркова")kind.classList.add("elective");
    subjectCell.append(kind);
   }
-  row.append(subjectCell);
-  for(const value of [subject.credits,subject.control,dateLabel(data.planned[subject.id]),dateLabel(result?.date),result?.score??"—"])row.append(el("td",value));
+  const plannedDate=data.planned[subject.id], actualDate=result?.date;
+  const dates=el("td");
+  if(plannedDate&&actualDate){
+   dates.append(el("div","Заплановано "+dateLabel(plannedDate)),el("div","Складено "+dateLabel(actualDate)));
+  }else{
+   dates.textContent=dateLabel(actualDate||plannedDate);
+  }
+  row.append(subjectCell,el("td",subject.credits),el("td",subject.control),dates,el("td",result?.score??"—"));
   const tools=el("div");tools.className="toolbar";
   tools.append(button("Результат",()=>openResult(subject)),button("Відомість",()=>openGroup(subject)));
   tools.append(button("Редагувати",()=>openPlan(subject)));
