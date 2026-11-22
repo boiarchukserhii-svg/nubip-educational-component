@@ -23,8 +23,9 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .year-option{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .year-terms{margin:0}
 .stack{display:grid;gap:8px}
-.roster-picker>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
-.program-details .stack{margin:8px 0 4px 12px}
+.roster-picker>summary,.specialty-details>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
+.specialty-details>.stack,.program-details>.stack{margin:8px 0 4px 12px}
+.program-details>summary{background:#f2f6fc}
 .profile-fields{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:12px 0 16px}
 .profile-fields dt{font-weight:650}
 .profile-fields dd{margin:0;overflow-wrap:anywhere}
@@ -338,25 +339,38 @@ function renderStudents(){
   .sort((a,b)=>rosterCollator.compare(value(a),value(b))||rosterCollator.compare(a.name,b.name));
  const visible=matches.find(student=>student.id===selected?.id)??null;
  if(visible!==selected)selectStudent(visible);
- const expanded=new Set([...$("students").querySelectorAll("details[open]")].map(group=>group.dataset.program));
- const programs=new Map();
+ const expanded=new Set([...$("students").querySelectorAll("details[open]")].map(group=>group.dataset.group));
+ const specialties=new Map();
  for(const student of matches){
-  const key=String(student.programId??student.program);
-  if(!programs.has(key))programs.set(key,{name:student.program,students:[]});
-  programs.get(key).students.push(student);
+  const name=specialty(student);
+  if(!specialties.has(name))specialties.set(name,new Map());
+  const programs=specialties.get(name), programId=String(student.programId??student.program);
+  if(!programs.has(programId))programs.set(programId,{name:student.program,students:[]});
+  programs.get(programId).students.push(student);
  }
- const groups=[...programs].sort(([,a],[,b])=>rosterCollator.compare(a.name,b.name));
- $("students").replaceChildren(...groups.map(([key,group])=>{
-  const details=el("details"), list=el("div");
-  details.className="program-details";
-  details.dataset.program=key;
-  details.open=expanded.has(key)||Boolean(query)||Boolean(programFilter)||group.students.includes(selected);
-  list.className="stack";
-  list.append(...group.students.map(student=>button(student.name,()=>{
-   selectStudent(student);render();$("notice").textContent="";
-  },student===selected)));
-  details.append(el("summary",group.name),list);
-  return details;
+ const revealMatches=Boolean(query||programFilter);
+ $("students").replaceChildren(...[...specialties].sort(([a],[b])=>rosterCollator.compare(a,b)).map(([name,programs])=>{
+  const branch=el("details"), programList=el("div");
+  branch.className="specialty-details";
+  branch.dataset.group=JSON.stringify([name]);
+  branch.open=expanded.has(branch.dataset.group)||revealMatches||specialtyFilter===name
+   ||(selected!==null&&specialty(selected)===name);
+  programList.className="stack";
+  const groups=[...programs].sort(([,a],[,b])=>rosterCollator.compare(a.name,b.name));
+  for(const [programId,group] of groups){
+   const details=el("details"), list=el("div");
+   details.className="program-details";
+   details.dataset.group=JSON.stringify([name,programId]);
+   details.open=expanded.has(details.dataset.group)||revealMatches||group.students.includes(selected);
+   list.className="stack";
+   list.append(...group.students.map(student=>button(student.name,()=>{
+    selectStudent(student);render();$("notice").textContent="";
+   },student===selected)));
+   details.append(el("summary",group.name),list);
+   programList.append(details);
+  }
+  branch.append(el("summary",name),programList);
+  return branch;
  }));
  if(!matches.length&&students.length)$("students").append(el("p","За цими умовами аспірантів не знайдено."));
 }
