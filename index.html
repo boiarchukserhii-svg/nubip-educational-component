@@ -604,7 +604,7 @@ $("cloudImport").onclick=async ()=>{
   await writeCloud(records,cloudState.revision);
  } catch(error){cloudStatus(syncError(error));}
 };
-import("./education-sync.js").then(module=>{
+import("./education-sync.js?v=registry").then(module=>{
  cloud=module;
  cloud.observe(user=>{
   cloudStop?.();
