@@ -190,7 +190,10 @@ function refreshData(){
 }
 function cloudStatus(message){
  $("cloudStatus").textContent=message;
- $("cloudImport").hidden=!(cloudUser&&cloudState?.revision===0&&!writing);
+ $("cloudImport").hidden=!canImportLocal();
+}
+function canImportLocal(){
+ return cloudUser&&cloudState&&!writing&&Object.keys(cloudState.records).length===0;
 }
 function syncError(error){
  if(error.code==="permission-denied")return "Немає доступу до сховища Firestore.";
@@ -211,7 +214,7 @@ async function writeCloud(records, revision){
   throw error;
  } finally {
   writing=false;
-  $("cloudImport").hidden=!(cloudUser&&cloudState?.revision===0);
+  $("cloudImport").hidden=!canImportLocal();
  }
 }
 async function writeRecord(key,value,dialogId){
@@ -566,7 +569,7 @@ $("cloudLogout").onclick=async ()=>{
  try {await cloud.exit();} catch(error) {cloudStatus(syncError(error));}
 };
 $("cloudImport").onclick=async ()=>{
- if(!cloudUser||cloudState?.revision!==0)return;
+ if(!canImportLocal())return;
  try {
   const records={};
   for(const key of Object.keys(localStorage)){
@@ -578,7 +581,7 @@ $("cloudImport").onclick=async ()=>{
    cloudStatus("У цьому браузері немає даних для перенесення.");
    return;
   }
-  await writeCloud(records,0);
+  await writeCloud(records,cloudState.revision);
  } catch(error){cloudStatus(syncError(error));}
 };
 import("./education-sync.js").then(module=>{
