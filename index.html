@@ -1,5 +1,8 @@
 <!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Освітня складова аспірантів</title>
+<meta name="theme-color" content="#15496f">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./education-192.png">
 <style>
 @font-face{font-family:Zakon;src:url('../aspirantura-nubip/Zakon-Regular.otf') format('opentype');font-weight:400;font-display:swap}
 @font-face{font-family:Zakon;src:url('../aspirantura-nubip/Zakon-Bold.otf') format('opentype');font-weight:700;font-display:swap}
@@ -62,12 +65,13 @@ footer{margin:14px 0}
  <button id="cloudLogin" type="button" disabled>Увійти через Google</button>
  <button id="cloudLogout" type="button" hidden>Вийти</button>
  <button id="cloudImport" type="button" hidden>Перенести дані з цього браузера</button>
+ <button id="installEducation" type="button" hidden>Встановити застосунок</button>
  <span id="cloudStatus" role="status">Підключення синхронізації…</span>
 </section>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
 <main><div class="layout"><aside><h2>Аспіранти</h2><p class="muted" id="rosterLabel"></p><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div class="toolbar"><button id="importLocal" type="button">Перенести 1 курс із «Аспірантів»</button><button id="importBackup" type="button">Відкрити JSON-копію «Аспірантів»</button><input id="registryFile" type="file" accept=".json,application/json" hidden></div><p id="importStatus" role="status"></p><div id="students" class="stack toolbar"></div></aside>
 <section aria-labelledby="name"><h2 id="name"></h2><p id="emptyProfile" hidden></p><div id="studentProfile"><p id="profile" class="muted"></p><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="yearContent" hidden><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
-<footer>Зміни зберігаються в цьому браузері.</footer></main>
+</main>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
 <dialog id="group" aria-labelledby="group-title"><form id="groupForm"><div class="dialog-head"><h2 id="group-title">Відомість дисципліни</h2><button type="button" data-close="group" aria-label="Закрити">✕</button></div><p id="groupInfo"></p><div class="field-row"><label>Запланована дата<input id="planned" type="date"></label><label>Дата складання для нових балів<input id="groupDate" type="date"></label></div><p id="sessionNote" aria-live="polite"></p><p class="muted">Заповніть лише бали, які потрібно внести.</p><div class="table-wrap"><table><thead><tr><th scope="col">ПІБ</th><th scope="col">Останній бал</th><th scope="col">Новий бал</th></tr></thead><tbody id="groupRows"></tbody></table></div><p id="groupError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти відомість</button><button type="button" id="export">Експорт в Excel</button></div></form></dialog>
 <dialog id="plan" aria-labelledby="planTitle"><form id="planForm"><div class="dialog-head"><h2 id="planTitle"></h2><button type="button" data-close="plan" aria-label="Закрити">✕</button></div>
@@ -179,7 +183,7 @@ function applyCloudState(next){
  if(cloudState&&next.revision<cloudState.revision)return;
  cloudState=next;
  refreshData();
- cloudStatus("Дані синхронізовано.");
+ cloudStatus("Дані збережено в Google-акаунті.");
 }
 function refreshData(){
  try {students=studentsForCohort(readRecord(rosterKey));} catch {students=[];}
@@ -602,11 +606,11 @@ import("./education-sync.js").then(module=>{
   $("cloudLogout").hidden=!user;
   refreshData();
   if(!cloudUser){
-   cloudStatus(user?"Синхронізація доступна власнику.":"Дані зберігаються в цьому браузері.");
+   cloudStatus(user?"Синхронізація доступна власнику.":"Увійдіть через Google, щоб зберігати дані в акаунті й відкривати їх на інших пристроях.");
    return;
   }
   cloudStatus("Завантаження даних облікового запису…");
   cloudStop=cloud.watch(cloudUser,applyCloudState,error=>cloudStatus(syncError(error)));
  });
 }).catch(error=>cloudStatus("Синхронізація недоступна. Дані зберігаються в цьому браузері."));
-</script></body></html>
+</script><script src="./education-install.js" defer></script></body></html>
