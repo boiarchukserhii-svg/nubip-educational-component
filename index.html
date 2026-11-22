@@ -22,7 +22,9 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .year-option{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .year-option>button{inline-size:100%}
-.year-terms{margin:0}
+.year-terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));inline-size:100%;gap:4px;margin:0}
+.year-period{inline-size:100%;margin:0;color:#465b75;font-size:.75rem;text-align:center}
+.year-period time{white-space:nowrap}
 .credit-summary{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 12px;color:#465b75}
 .course-kind{display:table;margin-top:4px;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#344a61;font-size:.875rem}
 .course-kind.required{background:#dff3e5;color:#155934}
@@ -505,7 +507,14 @@ function render(){
    terms.setAttribute("role","group");
    terms.setAttribute("aria-label","Півріччя · "+value+" рік");
    terms.append(...[1,2].map(half=>button(half+" півріччя",()=>{term=half;render();},term===half)));
-   option.append(terms);
+   const startYear=studyCohort()+value-1;
+   const period=el("p");
+   period.className="year-period";
+   const start=el("time","01.10."+startYear),end=el("time","30.09."+(startYear+1));
+   start.dateTime=startYear+"-10-01";
+   end.dateTime=(startYear+1)+"-09-30";
+   period.append(start," – ",end);
+   option.append(terms,period);
   }
   return option;
  }));
