@@ -20,6 +20,8 @@ main{margin-top:16px}
 section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radius:15px;padding:16px}
 .muted,footer{color:#465b75}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.year-option{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.year-terms{margin:0}
 .stack{display:grid;gap:8px}
 .roster-picker>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
 .program-details .stack{margin:8px 0 4px 12px}
@@ -79,7 +81,7 @@ details{margin-top:12px}
 </section>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
 <main><div class="layout"><aside><details class="roster-picker"><summary>Аспіранти 1 курсу</summary><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div id="students" class="stack toolbar"></div></details></aside>
-<section aria-labelledby="name"><h2 id="name"></h2><div id="studentProfile"><dl id="profile" class="profile-fields"></dl><div id="years" class="toolbar" aria-label="Рік навчання"></div><div id="yearContent" hidden><div id="terms" class="toolbar" aria-label="Півріччя"></div><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
+<section aria-labelledby="name"><h2 id="name"></h2><div id="studentProfile"><dl id="profile" class="profile-fields"></dl><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
 <footer class="site-footer"><span>© Сергій БОЯРЧУК, 2026</span><a href="https://nubip.edu.ua/department/viddil-aspirantury-doktorantury-ta-atestatsiyi-naukovykh-kadriv">Відділ аспірантури, докторантури та атестації наукових кадрів</a></footer>
 </main>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
@@ -468,11 +470,23 @@ function render(){
   ["Контингент",card.status]
  ];
  $("profile").replaceChildren(...facts.flatMap(([label,value])=>[el("dt",label),el("dd",value||"Не зазначено")]));
- $("years").replaceChildren(...[1,2,3,4].map(value=>button(value+" рік",()=>{year=value;term=1;render();},year===value)));
+ $("years").replaceChildren(...[1,2,3,4].map(value=>{
+  const option=el("div");
+  option.className="year-option";
+  option.append(button(value+" рік",()=>{year=value;term=1;render();},year===value));
+  if(year===value){
+   const terms=el("div");
+   terms.className="toolbar year-terms";
+   terms.setAttribute("role","group");
+   terms.setAttribute("aria-label","Півріччя · "+value+" рік");
+   terms.append(...[1,2].map(half=>button(half+" півріччя",()=>{term=half;render();},term===half)));
+   option.append(terms);
+  }
+  return option;
+ }));
  $("yearContent").hidden=year===null;
  if(year===null)return;
  renderSchedule();
- $("terms").replaceChildren(...[1,2].map(value=>button(value+" півріччя",()=>{term=value;render();},term===value)));
  const rows=data.courses.filter(row=>row.year===year&&row.term===term);
  $("courses").replaceChildren();
  if(!rows.length){$("courses").append(el("p","У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну»."));return;}
