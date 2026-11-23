@@ -276,8 +276,11 @@ async function writeRecord(key,value,dialogId){
  await writeCloud({...cloudState.records,[key]:value},cloudState.revision);
 }
 const cohort=2026;
+const fixApostrophe=value=>String(value??"").replace(/\x60/g,"'");
+const searchableName=value=>fixApostrophe(value).replace(/[’ʼ]/g,"'").toLocaleLowerCase("uk");
 function studentsForCohort(roster){
- return Array.isArray(roster)?roster.filter(student=>String(student?.start??"").slice(0,4)===String(cohort)):[];
+ return Array.isArray(roster)?roster.filter(student=>String(student?.start??"").slice(0,4)===String(cohort))
+  .map(student=>({...student,name:fixApostrophe(student.name)})):[];
 }
 const ownKey="nubip-education-own-plan-v1";
 function loadOwnPlan(storageKey=ownKey){
@@ -293,7 +296,7 @@ function firstYearRegistry(cards){
  const result=new Map();
  for(const card of cards){
   if(Number(card?.["Курс"])!==1||!["Навчається","Академічна відпустка"].includes(card["Контингент"]))continue;
-  const id=card["ID картки"], name=String(card["Здобувач"]??"").trim(), start=card["Початок навчання"]??"";
+  const id=card["ID картки"], name=fixApostrophe(card["Здобувач"]).trim(), start=card["Початок навчання"]??"";
   if(!Number.isSafeInteger(id)||id<1||!name||String(start).slice(0,4)!==String(cohort))continue;
   result.set(id,{id,name,start,end:card["Завершення навчання"]??"",cohort,
    program:String(card["Освітня програма"]||"ОНП не вказано"),programId:card["ID ОП"]??null,
@@ -359,10 +362,10 @@ function refreshRosterFilters(){
  }
 }
 function renderStudents(){
- const query=$("search").value.trim().toLocaleLowerCase("uk");
+ const query=searchableName($("search").value.trim());
  const specialtyFilter=$("specialtyFilter").value, programFilter=$("programFilter").value, sort=$("rosterSort").value;
  const value=sort==="specialty"?specialty:sort==="program"?student=>student.program:student=>student.name;
- const matches=students.filter(student=>student.name.toLocaleLowerCase("uk").includes(query)
+ const matches=students.filter(student=>searchableName(student.name).includes(query)
   && (!specialtyFilter||specialty(student)===specialtyFilter)
   && (!programFilter||student.program===programFilter))
   .sort((a,b)=>rosterCollator.compare(value(a),value(b))||rosterCollator.compare(a.name,b.name));
