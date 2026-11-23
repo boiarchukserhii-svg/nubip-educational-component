@@ -41,7 +41,10 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .student-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));gap:8px}
 .student-card{display:flex;align-items:flex-start;gap:9px;min-width:0;text-align:left;background:white;border:1px solid #dce6f1;padding:10px;box-shadow:0 2px 5px #193c6510}
 .student-card:hover{background:#edf5ff;border-color:#72a1d1}
-.student-initials{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:8px;background:#eaf2fc;color:#225891}
+.student-icon{position:relative;flex:none;width:34px;height:34px;border-radius:8px;background:#eaf2fc;color:#225891}
+.student-icon::before,.student-icon::after{content:"";position:absolute;background:currentColor}
+.student-icon::before{width:8px;height:8px;top:7px;left:13px;border-radius:50%}
+.student-icon::after{width:16px;height:10px;top:17px;left:9px;border-radius:9px 9px 3px 3px}
 .student-card-name{display:block;overflow-wrap:anywhere}
 .student-card-mode{display:inline-block;margin-top:4px;padding:1px 6px;border-radius:5px;background:#edf3fb;color:#24568a;font-size:.875rem;font-weight:400}
 #backToDirectory{margin-bottom:12px}
@@ -415,16 +418,16 @@ function renderDirectory(specialties){
    const orderedStudents=[...program.students].sort((a,b)=>rosterCollator.compare(a.name,b.name));
    for(const student of orderedStudents){
     const card=button("",()=>openStudent(student)), text=el("span");
-    const initials=el("span",student.name.trim().split(/\s+/).slice(0,2).map(name=>name[0]).join("").toLocaleUpperCase("uk"));
-    initials.className="student-initials";
-    initials.setAttribute("aria-hidden","true");
+    const icon=el("span");
+    icon.className="student-icon";
+    icon.setAttribute("aria-hidden","true");
     const fullName=el("span",student.name), mode=el("span",student.mode);
     fullName.className="student-card-name";
     mode.className="student-card-mode";
     text.append(fullName,mode);
     card.id="student-card-"+student.id;
     card.className="student-card";
-    card.append(initials,text);
+    card.append(icon,text);
     cards.append(card);
    }
    block.append(el("h4",program.name),cards);
