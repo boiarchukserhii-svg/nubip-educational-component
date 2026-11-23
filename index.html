@@ -45,8 +45,10 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .student-icon::before,.student-icon::after{content:"";position:absolute;background:currentColor}
 .student-icon::before{width:8px;height:8px;top:7px;left:13px;border-radius:50%}
 .student-icon::after{width:16px;height:10px;top:17px;left:9px;border-radius:9px 9px 3px 3px}
-.student-card-name{display:block;overflow-wrap:anywhere}
-.student-card-mode{display:inline-block;margin-top:4px;padding:1px 6px;border-radius:5px;background:#edf3fb;color:#24568a;font-size:.875rem;font-weight:400}
+.student-card-text{flex:1;min-width:0}
+.student-card-name{display:grid;grid-template-rows:repeat(3,1.35em);line-height:1.35}
+.student-card-name>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.student-card-mode{display:inline-block;max-width:100%;margin-top:4px;padding:1px 6px;border-radius:5px;background:#edf3fb;color:#24568a;font-size:.875rem;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
 #backToDirectory{margin-bottom:12px}
 .profile-fields{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:12px 0 16px}
 .profile-fields dt{font-weight:650}
@@ -421,12 +423,17 @@ function renderDirectory(specialties){
     const icon=el("span");
     icon.className="student-icon";
     icon.setAttribute("aria-hidden","true");
-    const fullName=el("span",student.name), mode=el("span",student.mode);
+    const fullName=el("span"), mode=el("span",student.mode);
+    const [surname,givenName,...patronymic]=student.name.trim().split(/\s+/);
+    text.className="student-card-text";
     fullName.className="student-card-name";
+    fullName.append(el("span",surname),el("span",givenName??""),el("span",patronymic.join(" ")));
     mode.className="student-card-mode";
     text.append(fullName,mode);
     card.id="student-card-"+student.id;
     card.className="student-card";
+    card.title=student.name;
+    card.setAttribute("aria-label",[student.name,student.mode].filter(Boolean).join(", "));
     card.append(icon,text);
     cards.append(card);
    }
