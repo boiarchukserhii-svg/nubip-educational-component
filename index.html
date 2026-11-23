@@ -118,7 +118,7 @@ details{margin-top:12px}
 <dialog id="group" aria-labelledby="group-title"><form id="groupForm"><div class="dialog-head"><h2 id="group-title">Відомість дисципліни</h2><button type="button" data-close="group" aria-label="Закрити">✕</button></div><p id="groupInfo"></p><div class="field-row"><label>Запланована дата<input id="planned" type="date"></label><label>Дата складання<input id="groupDate" type="date"></label></div><p id="sessionNote" aria-live="polite"></p><p class="muted">Заповніть лише бали, які потрібно внести.</p><div class="table-wrap"><table><thead><tr><th scope="col">ПІБ</th><th scope="col">Останній бал</th><th scope="col">Новий бал</th></tr></thead><tbody id="groupRows"></tbody></table></div><p id="groupError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти відомість</button><button type="button" id="export">Експорт в Excel</button></div></form></dialog>
 <dialog id="plan" aria-labelledby="planTitle"><form id="planForm"><div class="dialog-head"><h2 id="planTitle"></h2><button type="button" data-close="plan" aria-label="Закрити">✕</button></div>
 <label>Назва дисципліни<input id="courseName" required maxlength="200"></label>
-<div class="field-row toolbar"><label>Рік навчання<select id="courseYear"><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label>Півріччя<select id="courseTerm"><option>1</option><option>2</option></select></label><label>Кредити ЄКТС<input id="courseCredits" type="number" min="0.01" step="0.01" required></label><label>Форма контролю<select id="courseControl"><option>Екзамен</option><option>Залік</option><option>Диференційований залік</option><option>Інше</option></select></label><label>Тип дисципліни<select id="courseKind"><option>Обов’язкова</option><option>Вибіркова</option></select></label></div>
+<div class="field-row toolbar"><label>Рік навчання<select id="courseYear"><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label>Півріччя<select id="courseTerm"><option>1</option><option>2</option></select></label><label>Кредити ЄКТС<input id="courseCredits" type="number" min="0.01" step="0.01" required></label><label>Форма контролю<select id="courseControl" required><option value="" disabled>Не зазначено</option><option>Екзамен</option><option>Залік</option><option>Диференційований залік</option><option>Інше</option></select></label><label>Тип дисципліни<select id="courseKind" required><option value="" disabled>Не зазначено</option><option>Обов’язкова</option><option>Вибіркова</option></select></label></div>
 <p id="planError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти дисципліну</button><button type="button" id="removeCourse" hidden>Видалити дисципліну</button></div></form></dialog>
 <dialog id="scheduleDialog" aria-labelledby="scheduleEditTitle"><form id="scheduleForm"><div class="dialog-head"><h2 id="scheduleEditTitle"></h2><button type="button" data-close="scheduleDialog" aria-label="Закрити">✕</button></div><p>Внесіть дати із затвердженого графіка. Для кожного періоду можна залишити обидві дати порожніми.</p><div class="stack" id="scheduleFields"></div><p id="scheduleError" role="alert" class="error"></p><button class="primary">Зберегти графік</button></form></dialog><script>"use strict";
 
@@ -313,7 +313,8 @@ try {
 } catch {}
 let students=studentsForCohort(roster), selected=null, year=null, term=1, course, editing;
 const groupKey=student=>JSON.stringify([student.programId??student.program,student.specialty,student.cohort,student.mode]);
-const groupStudents=()=>students.filter(student=>groupKey(student)===groupKey(selected));
+const takesCourse=(student,subject)=>!subject.studentIds||subject.studentIds.includes(student.id);
+const groupStudents=subject=>students.filter(student=>groupKey(student)===groupKey(selected)&&takesCourse(student,subject));
 const studyCohort=()=>selected.cohort;
 const activePlanKey=()=>ownKey+":"+groupKey(selected);
 const planName=()=>selected.program+" · "+selected.mode;
@@ -592,12 +593,14 @@ function render(){
  $("yearContent").hidden=year===null;
  if(year===null)return;
  renderSchedule();
- const rows=data.courses.filter(row=>row.year===year&&row.term===term);
+ const studentCourses=data.courses.filter(subject=>takesCourse(selected,subject));
+ const rows=studentCourses.filter(row=>row.year===year&&row.term===term);
  $("courses").replaceChildren();
  const totals=el("p");
  totals.className="credit-summary";
  totals.append(el("span","За півріччя: "+creditTotal(rows)+" ЄКТС"),
-  el("span","За планом: "+creditTotal(data.courses)+" ЄКТС"));
+  el("span","За планом: "+creditTotal(studentCourses)+" ЄКТС"));
+ if(studentCourses.some(subject=>subject.credits==null))totals.append(el("span","Підсумок враховує лише вказані кредити"));
  $("courses").append(totals);
  if(!rows.length){$("courses").append(el("p","У цьому півріччі ще немає дисциплін. Натисніть «Додати дисципліну»."));return;}
  const wrap=el("div"), table=el("table"), heading=el("tr");
@@ -622,7 +625,7 @@ function render(){
   }else{
    dates.textContent=dateLabel(actualDate||plannedDate);
   }
-  row.append(subjectCell,el("td",subject.credits),el("td",subject.control),dates,el("td",result?.score??"—"));
+  row.append(subjectCell,el("td",subject.credits??"—"),el("td",subject.control||"—"),dates,el("td",result?.score??"—"));
   const tools=el("div");tools.className="course-actions";
   tools.append(button("Результат",()=>openResult(subject)),button("Відомість",()=>openGroup(subject)));
   tools.append(button("Редагувати",()=>openPlan(subject)));
@@ -649,7 +652,7 @@ function openGroup(subject){
  $("groupInfo").textContent=subject.name+" · "+planName()+" · набір "+studyCohort();
  $("planned").value=data.planned[subject.id]??"";
  updateSessionNote();
- $("groupRows").replaceChildren(...groupStudents().map(student=>{
+ $("groupRows").replaceChildren(...groupStudents(subject).map(student=>{
   const row=el("tr"), cell=el("td"), score=el("input");score.type="number";score.className="mark";
   score.min="0";score.max="100";score.step="1";score.name="score-"+student.id;
   score.setAttribute("aria-label","Новий бал · "+student.name);
@@ -661,7 +664,7 @@ function openGroup(subject){
 $("groupForm").onsubmit=async event=>{
  event.preventDefault();$("groupError").textContent="";
  const fields=event.currentTarget.elements, date=$("groupDate").value;
- const marked=groupStudents().filter(student=>fields.namedItem("score-"+student.id).value!=="");
+ const marked=groupStudents(course).filter(student=>fields.namedItem("score-"+student.id)?.value);
  if(marked.length&&!date){$("groupError").textContent="Для нових балів укажіть дату складання.";$("groupDate").focus();return;}
  const next=structuredClone(data);
  next.planned[course.id]=$("planned").value;
@@ -670,7 +673,7 @@ $("groupForm").onsubmit=async event=>{
 };
 $("export").onclick=()=>{
  const rows=[["ПІБ","Заплановано","Дата складання","Бал"]];
- for(const student of groupStudents()){
+ for(const student of groupStudents(course)){
   const result=latest(student,course);
   rows.push([student.name,dateLabel(data.planned[course.id]),dateLabel(result?.date),result?.score??""]);
  }
@@ -688,8 +691,8 @@ function openPlan(subject){
  $("courseYear").value=String(subject?.year??year);
  $("courseTerm").value=String(subject?.term??term);
  $("courseCredits").value=subject?.credits??"";
- $("courseControl").value=subject?.control??"Екзамен";
- $("courseKind").value=subject?.kind??"Обов’язкова";
+ $("courseControl").value=subject?(subject.control||""):"Екзамен";
+ $("courseKind").value=subject?(subject.kind||""):"Обов’язкова";
  $("removeCourse").hidden=!subject||hasResults(subject);
  openDataDialog("plan");
 }
@@ -700,6 +703,7 @@ $("planForm").onsubmit=async event=>{
  const next=structuredClone(data);
  const subject={id:editing?.id??String(next.courses.reduce((max,item)=>Math.max(max,Number(item.id)),0)+1),name,credits:$("courseCredits").valueAsNumber,
   year:Number($("courseYear").value),term:Number($("courseTerm").value),control:$("courseControl").value,kind:$("courseKind").value};
+ if(editing?.studentIds)subject.studentIds=editing.studentIds;
  if(next.courses.some(item=>item.id!==subject.id&&item.year===subject.year&&item.term===subject.term&&item.name.toLocaleLowerCase("uk")===name.toLocaleLowerCase("uk"))){
   $("planError").textContent="Дисципліна з такою назвою вже є в цьому півріччі.";return;
  }
