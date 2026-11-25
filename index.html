@@ -56,6 +56,8 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .profile-fields{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:12px 0 16px}
 .profile-fields dt{font-weight:650}
 .profile-fields dd{margin:0;overflow-wrap:anywhere}
+.approval-fields{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px}
+.approval-fields button{padding:4px 8px;font-size:.875rem}
 @media(max-width:430px){.profile-fields{grid-template-columns:1fr;gap:4px}.profile-fields dd{margin-bottom:6px}}
 .roster-filters{display:grid;gap:8px;margin-top:10px}
 #years{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
@@ -114,6 +116,7 @@ details{margin-top:12px}
 <section aria-labelledby="name"><button id="backToDirectory" type="button" hidden>До карток аспірантів</button><h2 id="name" tabindex="-1"></h2><div id="studentDirectory"></div><div id="studentProfile" hidden><dl id="profile" class="profile-fields"></dl><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
 <footer class="site-footer"><span>© Сергій БОЯРЧУК, 2026</span><a href="https://nubip.edu.ua/department/viddil-aspirantury-doktorantury-ta-atestatsiyi-naukovykh-kadriv">Відділ аспірантури, докторантури та атестації наукових кадрів</a></footer>
 </main>
+<dialog id="approvalDialog" aria-labelledby="approvalTitle"><form id="approvalForm"><div class="dialog-head"><h2 id="approvalTitle">Затвердження теми</h2><button type="button" data-close="approvalDialog" aria-label="Закрити">✕</button></div><div class="field-row"><label>Номер протоколу<input id="approvalNumber" maxlength="80" required></label><label>Дата протоколу<input id="approvalDate" type="date" required></label></div><p id="approvalError" class="error" role="alert"></p><button class="primary">Зберегти протокол</button></form></dialog>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
 <dialog id="group" aria-labelledby="group-title"><form id="groupForm"><div class="dialog-head"><h2 id="group-title">Відомість дисципліни</h2><button type="button" data-close="group" aria-label="Закрити">✕</button></div><p id="groupInfo"></p><div class="field-row"><label>Запланована дата<input id="planned" type="date"></label><label>Дата складання<input id="groupDate" type="date"></label></div><p id="sessionNote" aria-live="polite"></p><p class="muted">Заповніть лише бали, які потрібно внести.</p><div class="table-wrap"><table><thead><tr><th scope="col">ПІБ</th><th scope="col">Останній бал</th><th scope="col">Новий бал</th></tr></thead><tbody id="groupRows"></tbody></table></div><p id="groupError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти відомість</button><button type="button" id="export">Експорт в Excel</button></div></form></dialog>
 <dialog id="plan" aria-labelledby="planTitle"><form id="planForm"><div class="dialog-head"><h2 id="planTitle"></h2><button type="button" data-close="plan" aria-label="Закрити">✕</button></div>
@@ -283,6 +286,18 @@ function studentsForCohort(roster){
   .map(student=>({...student,name:fixApostrophe(student.name)})):[];
 }
 const ownKey="nubip-education-own-plan-v1";
+const approvalKey="nubip-education-topic-approval-v1:";
+function readApproval(student){
+ try {return readRecord(approvalKey+student.id)??{};} catch {return {};}
+}
+function openApproval(student){
+ const approval=readApproval(student);
+ $("approvalNumber").value=approval.number??"";
+ $("approvalDate").value=approval.date??"";
+ $("approvalError").textContent="";
+ $("approvalForm").dataset.studentId=String(student.id);
+ openDataDialog("approvalDialog");
+}
 function loadOwnPlan(storageKey=ownKey){
  try {
   const record=readRecord(storageKey);
@@ -562,13 +577,20 @@ function render(){
  const facts=[
   ["Період навчання",dateLabel(card.start)+" – "+dateLabel(card.end)],
   ["Форма навчання",card.mode],
-  ["Факультет / підрозділ",card.department],
-  ["ОНП",card.program],
-  ["Науковий керівник",card.supervisor],
+  ["Факультет/ННІ",card.department],
   ["Спеціальність",card.specialty],
-  ["Контингент",card.status]
+  ["ОНП",card.program],
+  ["Науковий керівник",card.supervisor]
  ];
  $("profile").replaceChildren(...facts.flatMap(([label,value])=>[el("dt",label),el("dd",value||"Не зазначено")]));
+ const approval=readApproval(selected), approvalField=el("dd");
+ const student=selected;
+ approvalField.className="approval-fields";
+ approvalField.append(el("span","Протокол № "+(approval.number||"—")),
+  el("span","Дата: "+dateLabel(approval.date)),
+  button(approval.number?"Редагувати протокол":"Внести протокол",()=>openApproval(student)));
+ $("profile").append(el("dt","Затвердження теми"),approvalField,
+  el("dt","Контингент"),el("dd",card.status||"Не зазначено"));
  $("years").replaceChildren(...[1,2,3,4].map(value=>{
   const option=el("div");
   option.className="year-option";
@@ -717,6 +739,16 @@ $("removeCourse").onclick=async ()=>{
  delete next.planned[editing.id];
  if(await save(next,"planError","Дисципліну видалено"))$("plan").close();
 };
+$("approvalForm").onsubmit=async event=>{
+ event.preventDefault();
+ const number=$("approvalNumber").value.trim(),date=$("approvalDate").value;
+ if(!number){$("approvalError").textContent="Вкажіть номер протоколу";$("approvalNumber").focus();return;}
+ try {
+  await writeRecord(approvalKey+event.currentTarget.dataset.studentId,{number,date},"approvalDialog");
+  $("approvalDialog").close();
+  render();
+ } catch(error){$("approvalError").textContent=syncError(error);}
+};
 for(const button of document.querySelectorAll("[data-close]"))button.onclick=()=>$(button.dataset.close).close();
 $("backToDirectory").onclick=()=>{
  const cardId="student-card-"+selected.id;
@@ -743,7 +775,7 @@ $("cloudImport").onclick=async ()=>{
  try {
   const records={};
   for(const key of Object.keys(localStorage)){
-   if(key===rosterKey||key===scheduleKey||key===ownKey||key.startsWith(ownKey+":")){
+   if(key===rosterKey||key===scheduleKey||key===ownKey||key.startsWith(ownKey+":")||key.startsWith(approvalKey)){
     records[key]=JSON.parse(localStorage.getItem(key));
    }
   }
@@ -764,7 +796,7 @@ import("./education-sync.js?v=registry").then(module=>{
   registryStudents=new Map();
   cloudUser=cloud.isOwner(user)?user:null;
   cloudState=null;
-  for(const id of ["scheduleDialog","result","group","plan"])$(id).close();
+  for(const id of ["scheduleDialog","result","group","plan","approvalDialog"])$(id).close();
   $("cloudLogin").disabled=false;
   $("cloudLogin").hidden=Boolean(user);
   $("cloudLogout").hidden=!user;
