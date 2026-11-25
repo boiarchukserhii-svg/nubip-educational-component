@@ -31,15 +31,16 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .course-kind.elective{background:#dff1fc;color:#145477}
 .course-actions{display:grid;gap:6px}
 .stack{display:grid;gap:8px}
-.roster-picker>summary,.specialty-details>summary,.program-details>summary{cursor:pointer;font-weight:650;padding:10px 12px;border-radius:8px;background:#e9f1fc;color:#15447f}
-.specialty-details>.stack,.program-details>.stack{margin:8px 0 4px 12px}
-.program-details>summary{background:#f2f6fc}
 .directory-specialty+.directory-specialty{margin-top:20px}
 .directory-course+.directory-course{margin-top:24px}
-.directory-specialty>h4{margin:0 0 10px;padding:9px 12px;border-radius:8px;background:#dcecff;color:#15447f;font-size:1rem}
+.directory-specialty>:is(h3,h4){margin:0 0 10px;padding:9px 12px;border-radius:8px;background:#dcecff;color:#15447f;font-size:1rem}
 .directory-program{margin:0 0 16px}
-.directory-program>h5{margin:0 0 8px;padding-inline-start:10px;border-inline-start:3px solid #85b1e0;color:#203752;font-size:1rem}
-#archiveToggle{margin-top:12px}
+.directory-program>:is(h4,h5){margin:0 0 8px;padding-inline-start:10px;border-inline-start:3px solid #85b1e0;color:#203752;font-size:1rem}
+.course-nav{display:grid;gap:8px}
+.course-nav button{text-align:left}
+#archiveToggle{margin-top:8px}
+.directory-tools{display:flex;align-items:end;gap:8px;margin-bottom:16px}
+.directory-tools label{flex:1}
 #studyHistory summary{cursor:pointer;font-weight:650}
 #studyHistory li+li{margin-top:8px}
 .student-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,205px),1fr));gap:8px}
@@ -67,8 +68,6 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 #years{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
 #years button{min-width:0;padding-inline:4px;white-space:nowrap}
 #years .year-terms button{white-space:normal}
-#students{overflow-x:auto;grid-template-columns:minmax(100%,max-content)}
-#students button{white-space:nowrap;text-align:left}
 #name{white-space:nowrap;overflow-x:auto;padding-bottom:2px}
 input,button,select{font:inherit}
 button{cursor:pointer;border:0;border-radius:8px;padding:9px 13px;background:#e9f1fc;color:#15447f;font-weight:650}
@@ -116,10 +115,17 @@ details{margin-top:12px}
  <span id="cloudStatus" role="status">Підключення синхронізації…</span>
 </section>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
-<main><div class="layout"><aside><details class="roster-picker"><summary>Аспіранти за курсами</summary><label>Пошук за ПІБ<input id="search" type="search"></label><div class="roster-filters"><label>Курс<select id="courseFilter"></select></label><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label><label>Сортувати за<select id="rosterSort"><option value="name">ПІБ</option><option value="specialty">Спеціальністю</option><option value="program">ОНП</option></select></label></div><div id="students" class="stack toolbar"></div></details><button id="archiveToggle" type="button" aria-pressed="false">Архів</button></aside>
-<section aria-labelledby="name"><button id="backToDirectory" type="button" hidden>До карток аспірантів</button><h2 id="name" tabindex="-1"></h2><div id="studentDirectory"></div><div id="studentProfile" hidden><dl id="profile" class="profile-fields"></dl><details id="studyHistory"><summary>Історія навчання</summary><ol id="studyHistoryList"></ol></details><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
+<main><div class="layout"><aside><nav class="course-nav" aria-label="Курси аспірантури">
+<button type="button" data-roster-course="1" aria-pressed="true">Аспіранти 1 курсу</button>
+<button type="button" data-roster-course="2" aria-pressed="false">Аспіранти 2 курсу</button>
+<button type="button" data-roster-course="3" aria-pressed="false">Аспіранти 3 курсу</button>
+<button type="button" data-roster-course="4" aria-pressed="false">Аспіранти 4 курсу</button>
+<button id="archiveToggle" type="button" data-roster-course="archive" aria-pressed="false">Архів</button>
+</nav></aside>
+<section aria-labelledby="name"><button id="backToDirectory" type="button" hidden>До карток аспірантів</button><h2 id="name" tabindex="-1"></h2><div id="directoryTools" class="directory-tools"><label>Пошук за ПІБ<input id="search" type="search"></label><button id="openRosterFilters" type="button" aria-haspopup="dialog">Фільтри</button></div><div id="studentDirectory"></div><div id="studentProfile" hidden><dl id="profile" class="profile-fields"></dl><details id="studyHistory"><summary>Історія навчання</summary><ol id="studyHistoryList"></ol></details><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
 <footer class="site-footer"><span>© Сергій БОЯРЧУК, 2026</span><a href="https://nubip.edu.ua/department/viddil-aspirantury-doktorantury-ta-atestatsiyi-naukovykh-kadriv">Відділ аспірантури, докторантури та атестації наукових кадрів</a></footer>
 </main>
+<dialog id="rosterFilters" aria-labelledby="rosterFiltersTitle"><div class="dialog-head"><h2 id="rosterFiltersTitle">Фільтри</h2><button type="button" data-close="rosterFilters" aria-label="Закрити">✕</button></div><div class="roster-filters"><label>Спеціальність<select id="specialtyFilter"></select></label><label>ОНП<select id="programFilter"></select></label></div><div class="toolbar"><button id="resetRosterFilters" type="button">Скинути</button><button id="applyRosterFilters" class="primary" type="button">Застосувати</button></div></dialog>
 <dialog id="approvalDialog" aria-labelledby="approvalTitle"><form id="approvalForm"><div class="dialog-head"><h2 id="approvalTitle">Затвердження теми</h2><button type="button" data-close="approvalDialog" aria-label="Закрити">✕</button></div><div class="field-row"><label>Номер протоколу<input id="approvalNumber" maxlength="80" required></label><label>Дата протоколу<input id="approvalDate" type="date" required></label></div><p id="approvalError" class="error" role="alert"></p><button class="primary">Зберегти протокол</button></form></dialog>
 <dialog id="result" aria-labelledby="result-title"><form id="resultForm"><div class="dialog-head"><h2 id="result-title">Результат контролю</h2><button type="button" data-close="result" aria-label="Закрити">✕</button></div><p id="resultInfo"></p><div class="field-row"><label>Фактична дата<input id="resultDate" type="date" required></label><label>Бал зі 100<input id="resultScore" class="mark" type="number" min="0" max="100" step="1" required></label></div><details id="history"><summary>Історія спроб</summary><ol id="attempts"></ol></details><p id="resultError" role="alert" class="error"></p><button class="primary">Зберегти спробу</button></form></dialog>
 <dialog id="group" aria-labelledby="group-title"><form id="groupForm"><div class="dialog-head"><h2 id="group-title">Відомість дисципліни</h2><button type="button" data-close="group" aria-label="Закрити">✕</button></div><p id="groupInfo"></p><div class="field-row"><label>Запланована дата<input id="planned" type="date"></label><label>Дата складання<input id="groupDate" type="date"></label></div><p id="sessionNote" aria-live="polite"></p><p class="muted">Заповніть лише бали, які потрібно внести.</p><div class="table-wrap"><table><thead><tr><th scope="col">ПІБ</th><th scope="col">Останній бал</th><th scope="col">Новий бал</th></tr></thead><tbody id="groupRows"></tbody></table></div><p id="groupError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти відомість</button><button type="button" id="export">Експорт в Excel</button></div></form></dialog>
@@ -220,7 +226,7 @@ function downloadEducationWorkbook(period,rows,filters){
 </script><script>"use strict";
 const $=id=>document.getElementById(id);
 let cloudUser=null, cloudState=null, cloud=null, cloudStop=null, registryStop=null, writing=false;
-let registryLoaded=false, archiveView=false;
+let registryLoaded=false, rosterCourse=1;
 const dialogRevisions=new Map();
 function openDataDialog(id){
  dialogRevisions.set(id,cloudState?.revision);
@@ -237,7 +243,7 @@ function applyCloudState(next){
 }
 function refreshData(){
  const previous=selected;
- try {students=studentsForCohort(readRecord(rosterKey));} catch {students=[];}
+ try {students=readSavedRoster(readRecord(rosterKey));} catch {students=[];}
  if(registryLoaded){
   const saved=new Map(students.map(student=>[student.id,student]));
   students=[...registryStudents.values()].map(card=>{
@@ -294,11 +300,11 @@ async function writeRecord(key,value,dialogId){
  }
  await writeCloud({...cloudState.records,[key]:value},cloudState.revision);
 }
-const cohort=2026;
+const rosterScope=student=>rosterCourse==="archive"?isArchived(student):!isArchived(student)&&courseNumber(student)===rosterCourse;
 const fixApostrophe=value=>String(value??"").replace(/\x60/g,"'");
 const searchableName=value=>fixApostrophe(value).replace(/[’ʼ]/g,"'").toLocaleLowerCase("uk");
-function studentsForCohort(roster){
- return Array.isArray(roster)?roster.filter(student=>String(student?.start??"").slice(0,4)===String(cohort))
+function readSavedRoster(roster){
+ return Array.isArray(roster)?roster.filter(student=>student&&Number.isInteger(student.cohort))
   .map(student=>({...student,name:fixApostrophe(student.name)})):[];
 }
 const ownKey="nubip-education-own-plan-v1";
@@ -326,12 +332,13 @@ let registryStudents=new Map();
 const isArchived=student=>["Відраховано","Завершив(-ла) навчання"].includes(student?.status);
 const courseNumber=student=>student.course===undefined?1:Number(student.course)||0;
 const courseLabel=number=>number?number+" курс":"Курс не зазначено";
-function cohortRegistry(cards){
+function projectRegistry(cards){
  const result=new Map();
  for(const card of cards){
   if(!card)continue;
   const id=card["ID картки"], name=fixApostrophe(card["Здобувач"]).trim(), start=card["Початок навчання"]??"";
-  if(!Number.isSafeInteger(id)||id<1||!name||String(start).slice(0,4)!==String(cohort))continue;
+  const cohort=Number(String(start).match(/^([0-9]{4})-/)?.[1]);
+  if(!Number.isSafeInteger(id)||id<1||!name||!Number.isInteger(cohort)||cohort<1900)continue;
   result.set(id,{id,name,start,end:card["Завершення навчання"]??"",cohort,
    program:String(card["Освітня програма"]||"ОНП не вказано"),programId:card["ID ОП"]??null,
    specialty:String(card["Спеціальність"]??""),mode:String(card["Форма навчання"]||"Форму не вказано"),
@@ -346,7 +353,7 @@ try {
  const saved=readRecord(rosterKey);
  if(Array.isArray(saved))roster=saved;
 } catch {}
-let students=studentsForCohort(roster), selected=null, year=null, term=1, course, editing;
+let students=readSavedRoster(roster), selected=null, year=null, term=1, course, editing;
 const groupKey=student=>JSON.stringify([student.programId??student.program,student.specialty,student.cohort,student.mode]);
 const takesCourse=(student,subject)=>!subject.studentIds||subject.studentIds.includes(student.id);
 const groupStudents=subject=>students.filter(student=>groupKey(student)===groupKey(selected)&&takesCourse(student,subject));
@@ -388,35 +395,28 @@ function addAttempt(next,student,subject,date,score){
 }
 const rosterCollator=new Intl.Collator("uk",{numeric:true,sensitivity:"base"});
 const specialty=student=>student.specialty||"Спеціальність не вказано";
+let rosterFilters={specialty:"",program:""};
 function refreshRosterFilters(){
- const visible=students.filter(student=>isArchived(student)===archiveView);
- for(const [id,label,value] of [["courseFilter","Усі курси",student=>courseLabel(courseNumber(student))],["specialtyFilter","Усі спеціальності",specialty],["programFilter","Усі ОНП",student=>student.program]]){
-  const field=$(id), previous=field.value;
+ const visible=students.filter(rosterScope);
+ for(const [id,key,label,value] of [["specialtyFilter","specialty","Усі спеціальності",specialty],["programFilter","program","Усі ОНП",student=>student.program]]){
+  const field=$(id);
   const values=[...new Set(visible.map(value))].sort(rosterCollator.compare);
   const all=el("option",label);all.value="";
   field.replaceChildren(all,...values.map(text=>{const item=el("option",text);item.value=text;return item;}));
-  field.value=values.includes(previous)?previous:"";
+  if(!values.includes(rosterFilters[key]))rosterFilters[key]="";
+  field.value=rosterFilters[key];
   field.disabled=!values.length;
  }
+ $("openRosterFilters").textContent=rosterFilters.specialty||rosterFilters.program?"Фільтри · активні":"Фільтри";
 }
 function renderStudents(){
  const query=searchableName($("search").value.trim());
- const specialtyFilter=$("specialtyFilter").value, programFilter=$("programFilter").value, sort=$("rosterSort").value;
- const value=sort==="specialty"?specialty:sort==="program"?student=>student.program:student=>student.name;
- const courseFilter=$("courseFilter").value;
- const matches=students.filter(student=>isArchived(student)===archiveView
-  && (!courseFilter||courseLabel(courseNumber(student))===courseFilter)
+ const matches=students.filter(student=>rosterScope(student)
   && searchableName(student.name).includes(query)
-  && (!specialtyFilter||specialty(student)===specialtyFilter)
-  && (!programFilter||student.program===programFilter))
-  .sort((a,b)=>rosterCollator.compare(value(a),value(b))||rosterCollator.compare(a.name,b.name));
+  && (!rosterFilters.specialty||specialty(student)===rosterFilters.specialty)
+  && (!rosterFilters.program||student.program===rosterFilters.program));
  const visible=matches.find(student=>student.id===selected?.id)??null;
  if(visible!==selected)selectStudent(visible);
- const expanded=new Set([...$("students").querySelectorAll("details[open]")].map(group=>group.dataset.group));
- const specialties=groupBySpecialty(matches);
- const revealMatches=Boolean(query||programFilter);
- renderRosterBranches(specialties,expanded,revealMatches,specialtyFilter);
- if(!matches.length&&students.length)$("students").append(el("p","За цими умовами аспірантів не знайдено."));
  if(!selected)renderDirectory(matches);
 }
 function groupBySpecialty(matches){
@@ -429,29 +429,6 @@ function groupBySpecialty(matches){
   programs.get(programId).students.push(student);
  }
  return specialties;
-}
-function renderRosterBranches(specialties,expanded,revealMatches,specialtyFilter){
- $("students").replaceChildren(...[...specialties].sort(([a],[b])=>rosterCollator.compare(a,b)).map(([name,programs])=>{
-  const branch=el("details"), programList=el("div");
-  branch.className="specialty-details";
-  branch.dataset.group=JSON.stringify([name]);
-  branch.open=expanded.has(branch.dataset.group)||revealMatches||specialtyFilter===name
-   ||(selected!==null&&specialty(selected)===name);
-  programList.className="stack";
-  const groups=[...programs].sort(([,a],[,b])=>rosterCollator.compare(a.name,b.name));
-  for(const [programId,group] of groups){
-   const details=el("details"), list=el("div");
-   details.className="program-details";
-   details.dataset.group=JSON.stringify([name,programId]);
-   details.open=expanded.has(details.dataset.group)||revealMatches||group.students.includes(selected);
-   list.className="stack";
-   list.append(...group.students.map(student=>button(student.name,()=>openStudent(student),student===selected)));
-   details.append(el("summary",group.name),list);
-   programList.append(details);
-  }
-  branch.append(el("summary",name),programList);
-  return branch;
- }));
 }
 function openStudent(student){
  selectStudent(student);
@@ -468,12 +445,13 @@ function renderDirectory(matches){
   if(!courses.has(number))courses.set(number,[]);
   courses.get(number).push(student);
  }
+ const archived=rosterCourse==="archive";
  const parts=[...courses].sort(([a],[b])=>a-b).map(([number,courseStudents])=>{
   const part=el("div");part.className="directory-course";
-  part.append(el("h3",courseLabel(number)));
+  if(archived)part.append(el("h3",courseLabel(number)));
   const groups=[...groupBySpecialty(courseStudents)].sort(([a],[b])=>rosterCollator.compare(a,b));
   part.append(...groups.map(([name,programs])=>{
-  const group=el("div"), heading=el("h4",name);
+  const group=el("div"), heading=el(archived?"h4":"h3",name);
   group.className="directory-specialty";
   group.append(heading);
   const orderedPrograms=[...programs.values()].sort((a,b)=>rosterCollator.compare(a.name,b.name));
@@ -502,7 +480,7 @@ function renderDirectory(matches){
     card.append(icon,text);
     cards.append(card);
    }
-   block.append(el("h5",program.name),cards);
+   block.append(el(archived?"h5":"h4",program.name),cards);
    group.append(block);
   }
   return group;
@@ -510,7 +488,7 @@ function renderDirectory(matches){
   return part;
  });
  directory.replaceChildren(...parts);
- if(!parts.length&&students.length)directory.append(el("p",archiveView?"В архіві немає карток за цими умовами":"За цими умовами аспірантів не знайдено"));
+ if(!parts.length&&students.length)directory.append(el("p",rosterCourse==="archive"?"В архіві немає карток за цими умовами":"За цими умовами аспірантів не знайдено"));
 }
 const academicSchedule = {
   2026: {
@@ -634,9 +612,10 @@ function render(){
  renderStudents();
  $("studentProfile").hidden=!selected;
  $("studentDirectory").hidden=Boolean(selected);
+ $("directoryTools").hidden=Boolean(selected);
  $("backToDirectory").hidden=!selected;
  if(!selected){
-  $("name").textContent=archiveView?"Архів · набір "+cohort+" року":"Аспіранти набору "+cohort+" року";
+  $("name").textContent=rosterCourse==="archive"?"Архів":"Аспіранти "+rosterCourse+" курсу";
   return;
  }
  $("name").textContent=selected.name;
@@ -839,16 +818,29 @@ $("backToDirectory").onclick=()=>{
  ($(cardId)??$("name")).focus();
 };
 $("search").oninput=render;
-$("archiveToggle").onclick=()=>{
- archiveView=!archiveView;
- $("archiveToggle").setAttribute("aria-pressed",String(archiveView));
- $("archiveToggle").textContent=archiveView?"До активного списку":"Архів";
+for(const tab of document.querySelectorAll("[data-roster-course]"))tab.onclick=()=>{
+ rosterCourse=tab.dataset.rosterCourse==="archive"?"archive":Number(tab.dataset.rosterCourse);
+ for(const item of document.querySelectorAll("[data-roster-course]"))item.setAttribute("aria-pressed",String(item===tab));
+ rosterFilters={specialty:"",program:""};
  selectStudent(null);
  refreshRosterFilters();
  render();
  $("name").focus();
 };
-for(const id of ["courseFilter","specialtyFilter","programFilter","rosterSort"])$(id).onchange=render;
+$("openRosterFilters").onclick=()=>{
+ refreshRosterFilters();
+ $("rosterFilters").showModal();
+};
+$("resetRosterFilters").onclick=()=>{
+ $("specialtyFilter").value="";
+ $("programFilter").value="";
+};
+$("applyRosterFilters").onclick=()=>{
+ rosterFilters={specialty:$("specialtyFilter").value,program:$("programFilter").value};
+ $("rosterFilters").close();
+ refreshRosterFilters();
+ render();
+};
 refreshRosterFilters();
 selectStudent(selected);
 render();
@@ -902,7 +894,7 @@ import("./education-sync.js?v=registry").then(module=>{
   const currentUser=cloudUser;
   registryStop=cloud.watchRegistry(currentUser,cards=>{
    if(cloudUser!==currentUser)return;
-   registryStudents=cohortRegistry(cards);
+   registryStudents=projectRegistry(cards);
    registryLoaded=true;
    refreshData();
   },error=>console.warn("Не вдалося оновити дані карток аспірантів.",error));
