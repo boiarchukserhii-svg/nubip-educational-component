@@ -38,6 +38,10 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 .directory-program>:is(h4,h5){margin:0 0 8px;padding-inline-start:10px;border-inline-start:3px solid #85b1e0;color:#203752;font-size:1rem}
 .course-nav{display:grid;gap:8px}
 .course-nav button{text-align:left}
+.course-nav-group{display:grid;gap:8px}
+.course-nav-group+.course-nav-group{border-block-start:1px solid #dce6f1;padding-block-start:12px;margin-block-start:4px}
+.course-nav-group h2{font-size:1rem;margin:0}
+.course-nav-group select{width:100%}
 #archiveToggle{margin-top:8px}
 .directory-tools{display:flex;align-items:end;gap:8px;margin-bottom:16px}
 .directory-tools label{flex:1}
@@ -124,14 +128,17 @@ details{margin-top:12px}
  <span id="cloudStatus" role="status">Підключення синхронізації…</span>
 </section>
 <header><p>НУБіП України</p><h1>Освітня складова аспірантів</h1></header>
-<main><div class="layout"><aside><nav class="course-nav" aria-label="Курси аспірантури">
+<main><div class="layout"><aside><nav class="course-nav" aria-label="Розділи освітньої складової"><section class="course-nav-group" aria-labelledby="navStudents"><h2 id="navStudents">Аспіранти</h2>
 <button type="button" data-roster-course="1" aria-pressed="true">Аспіранти 1 курсу</button>
 <button type="button" data-roster-course="2" aria-pressed="false">Аспіранти 2 курсу</button>
 <button type="button" data-roster-course="3" aria-pressed="false">Аспіранти 3 курсу</button>
 <button type="button" data-roster-course="4" aria-pressed="false">Аспіранти 4 курсу</button>
-<button type="button" data-roster-course="plans" aria-pressed="false">Навчальні плани ОНП</button>
-<button type="button" data-roster-course="supervisors" aria-pressed="false">Наукові керівники аспірантів</button>
 <button id="archiveToggle" type="button" data-roster-course="archive" aria-pressed="false">Архів</button>
+</section>
+<section class="course-nav-group" aria-labelledby="navPlans"><h2 id="navPlans">Навчальні плани</h2>
+<select id="planAcademicYear" aria-label="Навчальний рік планів ОНП"><option value="">Оберіть навчальний рік</option></select>
+</section>
+<section class="course-nav-group"><button type="button" data-roster-course="supervisors" aria-pressed="false">Наукові керівники</button></section>
 </nav></aside>
 <section aria-labelledby="name"><button id="backToDirectory" type="button" hidden>До карток аспірантів</button><h2 id="name" tabindex="-1"></h2><div id="directoryTools" class="directory-tools"><label>Пошук за ПІБ<input id="search" type="search"></label><button id="openRosterFilters" type="button" aria-haspopup="dialog">Фільтри</button></div><div id="studentDirectory"></div><div id="departmentWorkspace" hidden></div><div id="studentProfile" hidden><dl id="profile" class="profile-fields"></dl><div class="diploma-block" id="profileDiploma" hidden><h3>Диплом доктора філософії</h3><dl id="profileDiplomaDetails" class="profile-fields"></dl></div><details id="studyHistory"><summary>Історія навчання</summary><ol id="studyHistoryList"></ol></details><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="chooseElective" type="button" aria-haspopup="dialog">Обрати вибіркову дисципліну</button><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
 <footer class="site-footer"><span>© Сергій БОЯРЧУК, 2026</span><a href="https://nubip.edu.ua/department/viddil-aspirantury-doktorantury-ta-atestatsiyi-naukovykh-kadriv">Відділ аспірантури, докторантури та атестації наукових кадрів</a></footer>
@@ -688,15 +695,27 @@ function renderSupervisors(list,query){
  }
  if(!list.childElementCount)list.append(el("p","Наукових керівників за цими умовами не знайдено"));
 }
+let planAcademicYear=2026;
+const academicYearLabel=year=>year+"–"+(year+1)+" н. р.";
+function refreshPlanYears(){
+ const select=$("planAcademicYear");
+ const years=[...new Set([2025,2026,planAcademicYear,...students.filter(student=>student.program!=="ОНП не вказано").map(student=>student.cohort)])].sort((a,b)=>b-a);
+ select.replaceChildren(el("option","Оберіть навчальний рік"),...years.map(year=>{
+  const option=el("option",academicYearLabel(year));option.value=String(year);return option;
+ }));
+ select.options[0].value="";
+ select.options[0].disabled=true;
+ select.value=rosterCourse==="plans"?String(planAcademicYear):"";
+}
 function renderProgramPlans(list,query){
  const groups=new Map();
  for(const student of students){
-  if(student.program==="ОНП не вказано")continue;
+  if(student.cohort!==planAcademicYear||student.program==="ОНП не вказано")continue;
   const key=groupKey(student);
   if(!groups.has(key)||isArchived(groups.get(key)))groups.set(key,student);
  }
  const covered2026=new Set([...groups.values()].filter(student=>student.cohort===2026).map(student=>normalizeTitle(student.program)));
- for(const item of electives2026){
+ for(const item of planAcademicYear===2026?electives2026:[]){
   if(!covered2026.has(normalizeTitle(item.title)))groups.set(item.title,{cohort:2026,program:item.title,department:item.faculty,catalogOnly:true});
  }
  for(const student of [...groups.values()].sort((a,b)=>b.cohort-a.cohort||rosterCollator.compare(a.program,b.program)||rosterCollator.compare(a.mode??"",b.mode??""))){
@@ -734,7 +753,7 @@ function fillProgramPlan(details,student){
 }
 function renderWorkspace(){
  const workspace=$("departmentWorkspace"), list=el("div");
- const label=el("label",rosterCourse==="plans"?"Пошук за ОНП, набором або спеціальністю":"Пошук за ПІБ керівника або аспіранта");
+ const label=el("label",rosterCourse==="plans"?"Пошук за ОНП або спеціальністю":"Пошук за ПІБ керівника або аспіранта");
  const search=el("input");search.type="search";search.value=workspaceQuery;label.append(search);
  const update=()=>{
   list.replaceChildren();
@@ -772,6 +791,7 @@ $("electivePickerForm").onsubmit=async event=>{
  if(await save(next,"electivePickerError","Вибіркову дисципліну додано"))$("electivePicker").close();
 };
 function render(){
+ refreshPlanYears();
  const workspace=Object.hasOwn(workspaceNames,rosterCourse);
  if(!workspace)renderStudents();
  $("studentProfile").hidden=!selected;
@@ -781,7 +801,7 @@ function render(){
  $("backToDirectory").hidden=!selected;
  $("backToDirectory").textContent=workspace?"До розділу «"+workspaceNames[rosterCourse]+"»":"До карток аспірантів";
  if(!selected){
-  if(workspace){$("name").textContent=workspaceNames[rosterCourse];renderWorkspace();return;}
+  if(workspace){$("name").textContent=workspaceNames[rosterCourse]+(rosterCourse==="plans"?" · "+academicYearLabel(planAcademicYear):"");renderWorkspace();return;}
   $("name").textContent=rosterCourse==="archive"?"Архів":"Аспіранти "+rosterCourse+" курсу";
   return;
  }
@@ -1007,15 +1027,23 @@ $("backToDirectory").onclick=()=>{
  ($(cardId)??$("name")).focus();
 };
 $("search").oninput=render;
-for(const tab of document.querySelectorAll("[data-roster-course]"))tab.onclick=()=>{
- rosterCourse=/^\d+$/.test(tab.dataset.rosterCourse)?Number(tab.dataset.rosterCourse):tab.dataset.rosterCourse;
+function openRosterSection(section){
+ rosterCourse=section;
  workspaceQuery="";
- for(const item of document.querySelectorAll("[data-roster-course]"))item.setAttribute("aria-pressed",String(item===tab));
+ for(const item of document.querySelectorAll("[data-roster-course]"))item.setAttribute("aria-pressed",String(item.dataset.rosterCourse===String(section)));
  rosterFilters={specialty:"",program:""};
  selectStudent(null);
  refreshRosterFilters();
  render();
  $("name").focus();
+}
+for(const tab of document.querySelectorAll("[data-roster-course]"))tab.onclick=()=>{
+ const section=tab.dataset.rosterCourse;
+ openRosterSection(/^\d+$/.test(section)?Number(section):section);
+};
+$("planAcademicYear").onchange=event=>{
+ planAcademicYear=Number(event.target.value);
+ openRosterSection("plans");
 };
 $("openRosterFilters").onclick=()=>{
  refreshRosterFilters();
