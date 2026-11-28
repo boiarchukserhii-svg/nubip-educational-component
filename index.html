@@ -119,6 +119,7 @@ details{margin-top:12px}
 .workspace-card summary{cursor:pointer;font-weight:650}
 .workspace-card li{margin-block:5px}
 .workspace-card li button{margin-inline-start:8px}
+#supervisorRosterStudents{display:grid;gap:6px}
 </style></head><body>
 <section aria-label="Збереження даних" class="toolbar">
  <button id="cloudLogin" type="button" disabled>Увійти через Google</button>
@@ -151,6 +152,7 @@ details{margin-top:12px}
 <label>Назва дисципліни<input id="courseName" required maxlength="200"></label>
 <div class="field-row toolbar"><label>Рік навчання<select id="courseYear"><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label>Півріччя<select id="courseTerm"><option>1</option><option>2</option></select></label><label>Кредити ЄКТС<input id="courseCredits" type="number" min="0.01" step="0.01" required></label><label>Форма контролю<select id="courseControl" required><option value="" disabled>Не зазначено</option><option>Екзамен</option><option>Залік</option><option>Диференційований залік</option><option>Інше</option></select></label><label>Тип дисципліни<select id="courseKind" required><option value="" disabled>Не зазначено</option><option>Обов’язкова</option><option>Вибіркова</option></select></label></div>
 <p id="planError" role="alert" class="error"></p><div class="toolbar"><button class="primary">Зберегти дисципліну</button><button type="button" id="removeCourse" hidden>Видалити дисципліну</button></div></form></dialog>
+<dialog id="supervisorRoster" aria-labelledby="supervisorRosterTitle"><div class="dialog-head"><h2 id="supervisorRosterTitle"></h2><button type="button" data-close="supervisorRoster" aria-label="Закрити">✕</button></div><ul id="supervisorRosterStudents"></ul></dialog>
 <dialog id="supervisorStudent" aria-labelledby="supervisorStudentTitle"><div class="dialog-head"><h2 id="supervisorStudentTitle"></h2><button type="button" data-close="supervisorStudent" aria-label="Закрити">✕</button></div><dl id="supervisorStudentFacts" class="profile-fields"></dl><button id="supervisorOpenProfile" type="button">Відкрити повну картку</button></dialog>
 <dialog id="electivePicker" aria-labelledby="electivePickerTitle"><form id="electivePickerForm"><div class="dialog-head"><h2 id="electivePickerTitle">Вибіркова дисципліна</h2><button type="button" data-close="electivePicker" aria-label="Закрити">✕</button></div><label>Дисципліна<select id="electiveOption" required></select></label><p id="electivePickerError" class="error" role="alert"></p><button class="primary">Підтвердити вибір</button></form></dialog>
 <dialog id="scheduleDialog" aria-labelledby="scheduleEditTitle"><form id="scheduleForm"><div class="dialog-head"><h2 id="scheduleEditTitle"></h2><button type="button" data-close="scheduleDialog" aria-label="Закрити">✕</button></div><p>Внесіть дати із затвердженого графіка. Для кожного періоду можна залишити обидві дати порожніми.</p><div class="stack" id="scheduleFields"></div><p id="scheduleError" role="alert" class="error"></p><button class="primary">Зберегти графік</button></form></dialog><script>"use strict";
@@ -446,6 +448,23 @@ function refreshRosterFilters(){
  }
  $("openRosterFilters").textContent=rosterFilters.specialty||rosterFilters.program?"Фільтри · активні":"Фільтри";
 }
+function personCard(name,subtitle,click){
+ const card=button("",click), text=el("span"), icon=el("span"), fullName=el("span");
+ const [surname,givenName,...patronymic]=name.trim().split(/\s+/);
+ card.className="student-card";
+ card.title=name;
+ card.setAttribute("aria-label",[name,subtitle].filter(Boolean).join(", "));
+ icon.className="student-icon";
+ icon.setAttribute("aria-hidden","true");
+ text.className="student-card-text";
+ fullName.className="student-card-name";
+ fullName.append(el("span",surname),el("span",givenName??""),el("span",patronymic.join(" ")));
+ const caption=el("span",subtitle);
+ caption.className="student-card-mode";
+ text.append(fullName,caption);
+ card.append(icon,text);
+ return card;
+}
 function renderStudents(){
  const query=searchableName($("search").value.trim());
  const matches=students.filter(student=>rosterScope(student)
@@ -498,23 +517,11 @@ function renderDirectory(matches){
    cards.className="student-cards";
    const orderedStudents=[...program.students].sort((a,b)=>rosterCollator.compare(a.name,b.name));
    for(const student of orderedStudents){
-    const card=button("",()=>openStudent(student)), text=el("span");
-    const icon=el("span");
-    icon.className="student-icon";
-    icon.setAttribute("aria-hidden","true");
-    const fullName=el("span"), mode=el("span",student.status==="Академічна відпустка"?"Академвідпустка":student.mode);
-    const [surname,givenName,...patronymic]=student.name.trim().split(/\s+/);
-    text.className="student-card-text";
-    fullName.className="student-card-name";
-    fullName.append(el("span",surname),el("span",givenName??""),el("span",patronymic.join(" ")));
-    mode.className="student-card-mode";
-    text.append(fullName,mode);
+    const subtitle=student.status==="Академічна відпустка"?"Академвідпустка":student.mode;
+    const card=personCard(student.name,subtitle,()=>openStudent(student));
     card.id="student-card-"+student.id;
-    card.className="student-card";
     card.classList.toggle("feminine-accent",accents.has(student.id));
-    card.title=student.name;
     card.setAttribute("aria-label",[student.name,student.mode,student.status==="Навчається"?"":student.status].filter(Boolean).join(", "));
-    card.append(icon,text);
     cards.append(card);
    }
    block.append(el(archived?"h5":"h4",program.name),cards);
@@ -666,11 +673,13 @@ function renderSupervisorStudent(student){
 $("supervisorOpenProfile").onclick=()=>{
  const student=students.find(item=>item.id===supervisorStudentId);
  $("supervisorStudent").close();
+ $("supervisorRoster").close();
  if(!student)return;
  selectStudent(student);render();$("name").focus();
 };
 function renderSupervisors(list,query){
- const groups=new Map();
+ const groups=new Map(), cards=el("div");
+ cards.className="student-cards";
  for(const student of students){
   const card=registryStudents.get(student.id)??student;
   const seen=new Set();
@@ -685,15 +694,18 @@ function renderSupervisors(list,query){
  for(const {name,students:members} of [...groups.values()].sort((a,b)=>rosterCollator.compare(a.name,b.name))){
   const matches=normalizeTitle(name).includes(query)?members:members.filter(student=>normalizeTitle(student.name).includes(query));
   if(!matches.length)continue;
-  const card=el("details"), names=el("ul");
-  card.className="workspace-card";
-  card.open=Boolean(query);
-  names.append(...matches.sort((a,b)=>rosterCollator.compare(a.name,b.name)).map(student=>{
-   const item=el("li");item.append(button(student.name,()=>showSupervisorStudent(student)));return item;
-  }));
-  card.append(el("summary",name+" · "+matches.length),names);list.append(card);
+  const ordered=[...matches].sort((a,b)=>rosterCollator.compare(a.name,b.name));
+  const card=personCard(name,"Аспіранти · "+matches.length,()=>{
+   $("supervisorRosterTitle").textContent=name;
+   $("supervisorRosterStudents").replaceChildren(...ordered.map(student=>{
+    const item=el("li");item.append(button(student.name,()=>showSupervisorStudent(student)));return item;
+   }));
+   $("supervisorRoster").showModal();
+  });
+  card.setAttribute("aria-haspopup","dialog");
+  cards.append(card);
  }
- if(!list.childElementCount)list.append(el("p","Наукових керівників за цими умовами не знайдено"));
+ list.append(cards.childElementCount?cards:el("p","Наукових керівників за цими умовами не знайдено"));
 }
 let planAcademicYear=2026;
 const academicYearLabel=year=>year+"–"+(year+1)+" н. р.";
