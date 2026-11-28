@@ -139,7 +139,12 @@ details{margin-top:12px}
 <section class="course-nav-group" aria-labelledby="navPlans"><h2 id="navPlans">Навчальні плани</h2>
 <select id="planAcademicYear" aria-label="Навчальний рік планів ОНП"><option value="">Оберіть навчальний рік</option></select>
 </section>
-<section class="course-nav-group"><button type="button" data-roster-course="supervisors" aria-pressed="false">Наукові керівники</button></section>
+<section class="course-nav-group" aria-labelledby="navAttestation">
+<h2 id="navAttestation">Підготовка та атестація наукових кадрів</h2>
+<button type="button" data-roster-course="supervisors" aria-pressed="false">Наукові керівники</button>
+<button type="button" data-roster-course="expertise" aria-pressed="false">Експертиза дисертацій</button>
+<button type="button" data-roster-course="councils" aria-pressed="false">Разові спеціалізовані вчені ради</button>
+</section>
 </nav></aside>
 <section aria-labelledby="name"><button id="backToDirectory" type="button" hidden>До карток аспірантів</button><h2 id="name" tabindex="-1"></h2><div id="directoryTools" class="directory-tools"><label>Пошук за ПІБ<input id="search" type="search"></label><button id="openRosterFilters" type="button" aria-haspopup="dialog">Фільтри</button></div><div id="studentDirectory"></div><div id="departmentWorkspace" hidden></div><div id="studentProfile" hidden><dl id="profile" class="profile-fields"></dl><div class="diploma-block" id="profileDiploma" hidden><h3>Диплом доктора філософії</h3><dl id="profileDiplomaDetails" class="profile-fields"></dl></div><details id="studyHistory"><summary>Історія навчання</summary><ol id="studyHistoryList"></ol></details><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="chooseElective" type="button" aria-haspopup="dialog">Обрати вибіркову дисципліну</button><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
 <footer class="site-footer"><span>© Сергій БОЯРЧУК, 2026</span><a href="https://nubip.edu.ua/department/viddil-aspirantury-doktorantury-ta-atestatsiyi-naukovykh-kadriv">Відділ аспірантури, докторантури та атестації наукових кадрів</a></footer>
@@ -340,7 +345,22 @@ const electivesFor=student=>student.cohort===2026
  : [];
 const electiveKind=subject=>normalizeTitle(subject.kind)==="вибіркова";
 const planKeyFor=student=>ownKey+":"+groupKey(student);
-const workspaceNames={plans:"Навчальні плани ОНП",supervisors:"Наукові керівники аспірантів"};
+const workspaceNames={
+ plans:"Навчальні плани ОНП",
+ supervisors:"Наукові керівники аспірантів",
+ expertise:"Експертиза дисертацій",
+ councils:"Разові спеціалізовані вчені ради"
+};
+const attestationLinks={
+ expertise:{
+  title:"Положення НУБіП про атестацію здобувачів ступеня доктора філософії (PDF)",
+  url:"https://nubip.edu.ua/sites/default/files/rich_text_files/"+encodeURIComponent("Положення про атестацію здобувачів ступеня доктора філософії (редакція від 23.12.2025).pdf")
+ },
+ councils:{
+  title:"Відкрити застосунок «Разові ради НУБіП України»",
+  url:"https://boiarchukserhii-svg.github.io/nubip-council-members/"
+ }
+};
 let workspaceQuery="",planEditorGroup=null,catalogDraftName="",supervisorStudentId;
 const ownKey="nubip-education-own-plan-v1";
 const approvalKey="nubip-education-topic-approval-v1:";
@@ -764,7 +784,19 @@ function fillProgramPlan(details,student){
  if(!electives.childElementCount)electives.append(el("li","Дисциплін ще не додано"));
 }
 function renderWorkspace(){
- const workspace=$("departmentWorkspace"), list=el("div");
+ const workspace=$("departmentWorkspace");
+ const resource=attestationLinks[rosterCourse];
+ if(resource){
+  const link=el("a",resource.title);
+  link.href=resource.url;
+  link.target="_blank";
+  link.rel="noopener";
+  const item=el("p");
+  item.append(link);
+  workspace.replaceChildren(item);
+  return;
+ }
+ const list=el("div");
  const label=el("label",rosterCourse==="plans"?"Пошук за ОНП або спеціальністю":"Пошук за ПІБ керівника або аспіранта");
  const search=el("input");search.type="search";search.value=workspaceQuery;label.append(search);
  const update=()=>{
