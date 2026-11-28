@@ -48,6 +48,10 @@ section,aside{min-width:0;background:white;border:1px solid #dce6f1;border-radiu
 #studyHistory summary{cursor:pointer;font-weight:650}
 #studyHistory li+li{margin-top:8px}
 .student-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,205px),1fr));gap:8px}
+#departmentWorkspace{container-type:inline-size}
+.supervisor-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container (max-width:640px){.supervisor-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:420px){.supervisor-cards{grid-template-columns:minmax(0,1fr)}}
 .student-card{display:flex;align-items:flex-start;gap:9px;min-width:0;text-align:left;background:white;border:1px solid #dce6f1;border-inline-start:3px solid #72a1d1;padding:10px;padding-inline-start:8px;box-shadow:0 2px 5px #193c6510}
 .student-card:hover{background:#edf5ff;border-color:#72a1d1}
 .student-card.feminine-accent{border-inline-start-color:#ad83c7}
@@ -144,6 +148,7 @@ details{margin-top:12px}
 <button type="button" data-roster-course="supervisors" aria-pressed="false">Наукові керівники</button>
 <button type="button" data-roster-course="expertise" aria-pressed="false">Експертиза дисертацій</button>
 <button type="button" data-roster-course="councils" aria-pressed="false">Разові спеціалізовані вчені ради</button>
+<button type="button" data-roster-course="supervisorsArchive" aria-pressed="false">Архів</button>
 </section>
 </nav></aside>
 <section aria-labelledby="name"><button id="backToDirectory" type="button" hidden>До карток аспірантів</button><h2 id="name" tabindex="-1"></h2><div id="directoryTools" class="directory-tools"><label>Пошук за ПІБ<input id="search" type="search"></label><button id="openRosterFilters" type="button" aria-haspopup="dialog">Фільтри</button></div><div id="studentDirectory"></div><div id="departmentWorkspace" hidden></div><div id="studentProfile" hidden><dl id="profile" class="profile-fields"></dl><div class="diploma-block" id="profileDiploma" hidden><h3>Диплом доктора філософії</h3><dl id="profileDiplomaDetails" class="profile-fields"></dl></div><details id="studyHistory"><summary>Історія навчання</summary><ol id="studyHistoryList"></ol></details><div id="years" class="toolbar" role="group" aria-label="Рік навчання"></div><div id="yearContent" hidden><div class="toolbar" aria-label="Навчальний план"><button id="chooseElective" type="button" aria-haspopup="dialog">Обрати вибіркову дисципліну</button><button id="addCourse" class="primary" type="button">Додати дисципліну</button></div><div class="academic-schedule" aria-labelledby="scheduleTitle"><h3 id="scheduleTitle">Графік освітнього процесу</h3><label>Форма навчання<select id="studyMode"><option value="fullTime">Денна</option><option value="partTime">Заочна</option></select></label><ul id="scheduleDates"></ul><button id="editSchedule" type="button" hidden>Внести графік півріччя</button><p><a href="https://nubip.edu.ua/hrafik-osvitnoho-protsesu-6" target="_blank" rel="noopener">Офіційний графік НУБіП на 2026–2027 н. р.</a></p></div><h3>Дисципліни</h3><div id="courses"></div></div><p id="notice" role="status"></p></div></section></div>
@@ -349,7 +354,8 @@ const workspaceNames={
  plans:"Навчальні плани ОНП",
  supervisors:"Наукові керівники аспірантів",
  expertise:"Експертиза дисертацій",
- councils:"Разові спеціалізовані вчені ради"
+ councils:"Разові спеціалізовані вчені ради",
+ supervisorsArchive:"Архів наукових керівників"
 };
 const attestationLinks={
  expertise:{
@@ -697,11 +703,12 @@ $("supervisorOpenProfile").onclick=()=>{
  if(!student)return;
  selectStudent(student);render();$("name").focus();
 };
-function renderSupervisors(list,query){
+function renderSupervisors(list,query,archive){
  const groups=new Map(), cards=el("div");
- cards.className="student-cards";
+ cards.className="student-cards supervisor-cards";
  for(const student of students){
   const card=registryStudents.get(student.id)??student;
+  if((card.status==="Відраховано")!==archive)continue;
   const seen=new Set();
   for(const name of String(card.supervisor??"").split(/[;\n]+/).map(name=>name.replace(/\s+/g," ").trim()).filter(Boolean)){
    const key=normalizeTitle(name);
@@ -803,7 +810,7 @@ function renderWorkspace(){
   list.replaceChildren();
   const query=normalizeTitle(workspaceQuery);
   if(rosterCourse==="plans")renderProgramPlans(list,query);
-  else renderSupervisors(list,query);
+  else renderSupervisors(list,query,rosterCourse==="supervisorsArchive");
  };
  search.oninput=()=>{workspaceQuery=search.value;update();};
  workspace.replaceChildren(label,list);update();
